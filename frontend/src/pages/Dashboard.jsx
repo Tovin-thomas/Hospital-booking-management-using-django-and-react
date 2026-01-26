@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from '../api/axios';
 import API_ENDPOINTS from '../api/endpoints';
 import Loading from '../components/common/Loading';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
     const { data: stats, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
         queryFn: async () => {
@@ -12,6 +17,14 @@ const Dashboard = () => {
             return response.data;
         },
     });
+
+    // Redirect admins to admin panel
+    useEffect(() => {
+        const isAdmin = user?.is_staff || user?.is_superuser;
+        if (isAdmin) {
+            navigate('/admin/dashboard', { replace: true });
+        }
+    }, [user, navigate]);
 
     if (isLoading) return <Loading />;
 

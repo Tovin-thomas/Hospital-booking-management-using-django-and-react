@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
-// Pages
+// Public Pages
 import Home from './pages/Home';
 import About from './pages/About';
 import Doctors from './pages/Doctors';
@@ -15,12 +15,20 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Contact from './pages/Contact';
 
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminDoctors from './pages/admin/AdminDoctors';
+import AdminDepartments from './pages/admin/AdminDepartments';
+import AdminBookings from './pages/admin/AdminBookings';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminContacts from './pages/admin/AdminContacts';
+
 function App() {
     return (
         <Router>
             <Routes>
+                {/* Public Routes with Layout */}
                 <Route path="/" element={<Layout />}>
-                    {/* Public Routes */}
                     <Route index element={<Home />} />
                     <Route path="about" element={<About />} />
                     <Route path="doctors" element={<Doctors />} />
@@ -29,7 +37,7 @@ function App() {
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
 
-                    {/* Protected Routes */}
+                    {/* Protected Patient/Doctor Routes */}
                     <Route path="booking/:doctorId" element={
                         <ProtectedRoute>
                             <Booking />
@@ -45,10 +53,47 @@ function App() {
                             <Dashboard />
                         </ProtectedRoute>
                     } />
-
-                    {/* Fallback */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
+
+                {/* Admin Panel Routes (No Layout - Uses AdminLayout internally) */}
+                <Route path="/admin">
+                    <Route path="dashboard" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminDashboard />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="doctors" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminDoctors />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="departments" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminDepartments />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="bookings" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminBookings />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="users" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminUsers />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="contacts" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminContacts />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* Redirect /admin to /admin/dashboard */}
+                    <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                </Route>
+
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router>
     );

@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
             await loadUser();
 
             toast.success('Login successful!');
-            return { success: true };
+            return { success: true, user: user }; // Return user data
         } catch (error) {
             const message = error.response?.data?.detail || 'Login failed. Please check your credentials.';
             toast.error(message);

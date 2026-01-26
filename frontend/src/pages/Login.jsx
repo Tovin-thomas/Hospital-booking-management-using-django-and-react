@@ -30,7 +30,10 @@ const Login = () => {
         setLoading(false);
 
         if (result.success) {
-            navigate(from, { replace: true });
+            // Check if user is admin and redirect accordingly
+            const isAdmin = result.user?.is_staff || result.user?.is_superuser;
+            const redirectPath = isAdmin ? '/admin/dashboard' : (from !== '/dashboard' ? from : '/dashboard');
+            navigate(redirectPath, { replace: true });
         }
     };
 
