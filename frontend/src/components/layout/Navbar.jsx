@@ -204,13 +204,15 @@ const Navbar = () => {
                                 </div>
 
                                 {/* Book Appointment CTA */}
-                                <Link to="/doctors" className="btn btn-primary" style={{
-                                    padding: '0.75rem 1.5rem',
-                                    fontWeight: 600,
-                                    boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
-                                }}>
-                                    Book Appointment
-                                </Link>
+                                {!isAuthPage && (
+                                    <Link to="/doctors" className="btn btn-primary" style={{
+                                        padding: '0.75rem 1.5rem',
+                                        fontWeight: 600,
+                                        boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                                    }}>
+                                        Book Appointment
+                                    </Link>
+                                )}
                             </>
                         ) : (
                             <>
@@ -220,12 +222,14 @@ const Navbar = () => {
                                 }} className="desktop-only">
                                     Login
                                 </Link>
-                                <Link to="/doctors" className="btn btn-primary" style={{
-                                    padding: '0.75rem 1.5rem',
-                                    fontWeight: 600,
-                                }}>
-                                    Book Appointment
-                                </Link>
+                                {!isAuthPage && (
+                                    <Link to="/doctors" className="btn btn-primary" style={{
+                                        padding: '0.75rem 1.5rem',
+                                        fontWeight: 600,
+                                    }}>
+                                        Book Appointment
+                                    </Link>
+                                )}
                             </>
                         )}
 
