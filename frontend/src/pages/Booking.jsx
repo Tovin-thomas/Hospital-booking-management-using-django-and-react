@@ -139,6 +139,7 @@ const Booking = () => {
                                     setSelectedTime('');
                                 }}
                                 min={new Date().toISOString().split('T')[0]}
+                                max={new Date(new Date().setDate(new Date().getDate() + 60)).toISOString().split('T')[0]}
                                 required
                             />
                         </div>
@@ -161,7 +162,7 @@ const Booking = () => {
                                                 onClick={() => setSelectedTime(slot.time)}
                                                 disabled={!slot.available}
                                                 className={`btn btn-sm ${selectedTime === slot.time ? 'btn-primary' :
-                                                        slot.available ? 'btn-outline' : 'btn-secondary'
+                                                    slot.available ? 'btn-outline' : 'btn-secondary'
                                                     }`}
                                                 style={{
                                                     opacity: slot.available ? 1 : 0.5,

@@ -170,6 +170,14 @@ class DoctorViewSet(viewsets.ModelViewSet):
                 'reason': 'Cannot book appointments in the past',
                 'slots': []
             })
+
+        # Check if date is too far in future
+        if booking_date > date.today() + timedelta(days=60):
+            return Response({
+                'available': False,
+                'reason': 'Cannot book appointments more than 2 months in advance',
+                'slots': []
+            })
         
         # Check if doctor is on leave
         leave = doctor.leaves.filter(date=booking_date).first()

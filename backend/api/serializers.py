@@ -299,6 +299,12 @@ class BookingSerializer(serializers.ModelSerializer):
                 'booking_date': 'Cannot book appointments in the past.'
             })
         
+        # Check if date is more than 2 months in advance
+        if booking_date > date.today() + timedelta(days=60):
+             raise serializers.ValidationError({
+                'booking_date': 'Cannot book appointments more than 2 months in advance.'
+            })
+        
         # Check if doctor is on leave
         if doctor.leaves.filter(date=booking_date).exists():
             leave = doctor.leaves.get(date=booking_date)
