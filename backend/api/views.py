@@ -57,6 +57,15 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 # Department Views
 # ===========================
 
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    Manage Users (Admin only).
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+
+
 class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List and retrieve departments.

@@ -44,6 +44,11 @@ const API_ENDPOINTS = {
         markRead: (id) => `/contacts/${id}/mark_read/`,
     },
 
+    // Users (Admin)
+    users: {
+        list: '/users/',
+    },
+
     // Doctor Schedule Management
     doctorAvailability: {
         list: '/doctor-availability/',

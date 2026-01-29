@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import (
-    UserRegistrationView, UserProfileView,
+    UserRegistrationView, UserProfileView, UserViewSet,
     DepartmentViewSet, DoctorViewSet,
     BookingViewSet, ContactViewSet,
     dashboard_stats, api_root,
@@ -18,6 +18,7 @@ router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'contacts', ContactViewSet, basename='contact')
 router.register(r'doctor-availability', DoctorAvailabilityViewSet, basename='doctor-availability')
 router.register(r'doctor-leaves', DoctorLeaveViewSet, basename='doctor-leaves')
+router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     # API Root
