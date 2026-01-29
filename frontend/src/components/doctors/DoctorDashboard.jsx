@@ -127,15 +127,19 @@ const DoctorDashboard = ({ stats }) => {
 // --- Sub-components (Unchanged Logic, styling tweaks optional) ---
 
 const Overview = ({ stats }) => (
-    <div className="grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '1.5rem',
-    }}>
-        <StatCard title="Total Appointments" value={stats.total_appointments} icon="📅" color="primary" />
-        <StatCard title="Pending Requests" value={stats.pending_appointments} icon="⏳" color="warning" />
-        <StatCard title="Confirmed" value={stats.accepted_appointments} icon="✅" color="success" />
-        <StatCard title="Today's Schedule" value={stats.today_appointments} icon="📆" color="info" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+        }}>
+            <StatCard title="Total Appointments" value={stats.total_appointments} icon="📅" color="primary" />
+            <StatCard title="Pending Requests" value={stats.pending_appointments} icon="⏳" color="warning" />
+            <StatCard title="Confirmed" value={stats.accepted_appointments} icon="✅" color="success" />
+            <StatCard title="Today's Schedule" value={stats.today_appointments} icon="📆" color="info" />
+        </div>
+
+        <AppointmentsList />
     </div>
 );
 

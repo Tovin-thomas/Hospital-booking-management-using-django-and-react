@@ -260,12 +260,12 @@ class BookingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        # Admin sees all bookings
-        if user.is_staff:
+        # Admin (Superuser) sees all bookings
+        if user.is_superuser:
             return Booking.objects.all().select_related('doc_name', 'user')
         
         # Doctors see their bookings
-        if hasattr(user, 'doctors'):
+        if hasattr(user, 'doctors') and user.doctors:
             return Booking.objects.filter(doc_name=user.doctors).select_related('doc_name', 'user')
         
         # Regular users see only their bookings
