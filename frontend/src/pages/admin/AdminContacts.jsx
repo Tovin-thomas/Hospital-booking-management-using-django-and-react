@@ -8,6 +8,7 @@ import { formatDate } from '../../utils/formatters';
 
 const AdminContacts = () => {
     const [selectedMessage, setSelectedMessage] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const { data: messages, isLoading } = useQuery({
         queryKey: ['admin-contacts'],
@@ -19,6 +20,12 @@ const AdminContacts = () => {
 
     if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
 
+    const filteredMessages = messages?.filter(msg =>
+        msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.message.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     const unreadCount = messages?.filter(m => !m.is_read).length || 0;
 
     return (
@@ -28,22 +35,42 @@ const AdminContacts = () => {
                 <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
                     Contact Messages
                 </h2>
-                <p style={{ margin: 0, color: '#64748b' }}>
-                    {messages?.length || 0} total messages
-                    {unreadCount > 0 && (
-                        <span style={{
-                            marginLeft: '0.75rem',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#fef2f2',
-                            color: '#dc2626',
-                            fontSize: '0.875rem',
-                            fontWeight: 600
-                        }}>
-                            {unreadCount} unread
-                        </span>
-                    )}
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+                    <p style={{ margin: 0, color: '#64748b' }}>
+                        {filteredMessages?.length || 0} messages found
+                        {unreadCount > 0 && (
+                            <span style={{
+                                marginLeft: '0.75rem',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '9999px',
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                fontSize: '0.875rem',
+                                fontWeight: 600
+                            }}>
+                                {unreadCount} unread
+                            </span>
+                        )}
+                    </p>
+                    <div style={{ width: '300px', position: 'relative' }}>
+                        <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+                        <input
+                            type="text"
+                            placeholder="Search messages..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem 1rem 0.6rem 2.5rem',
+                                borderRadius: '0.5rem',
+                                border: '1px solid #e2e8f0',
+                                outline: 'none',
+                                fontSize: '0.875rem',
+                                backgroundColor: 'white'
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Messages List */}
@@ -53,9 +80,9 @@ const AdminContacts = () => {
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                 overflow: 'hidden'
             }}>
-                {messages?.length > 0 ? (
+                {filteredMessages?.length > 0 ? (
                     <div>
-                        {messages.map((message) => (
+                        {filteredMessages.map((message) => (
                             <div
                                 key={message.id}
                                 onClick={() => setSelectedMessage(message)}

@@ -8,6 +8,7 @@ import { formatDate, formatTime } from '../../utils/formatters';
 
 const AdminBookings = () => {
     const [statusFilter, setStatusFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const { data: bookings, isLoading } = useQuery({
         queryKey: ['admin-bookings', statusFilter],
@@ -20,6 +21,12 @@ const AdminBookings = () => {
             return response.data.results || response.data;
         },
     });
+
+    const filteredBookings = bookings?.filter(booking =>
+        booking.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.doctor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.id?.toString().includes(searchTerm)
+    );
 
     const statusColors = {
         pending: { bg: '#fef3c7', text: '#92400e', icon: 'clock' },
@@ -46,9 +53,29 @@ const AdminBookings = () => {
                 <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
                     Manage Bookings
                 </h2>
-                <p style={{ margin: 0, color: '#64748b' }}>
-                    {bookings?.length || 0} {statusFilter === 'all' ? 'total' : statusFilter} appointments
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+                    <p style={{ margin: 0, color: '#64748b' }}>
+                        {filteredBookings?.length || 0} {statusFilter === 'all' ? 'total' : statusFilter} appointments
+                    </p>
+                    <div style={{ width: '300px', position: 'relative' }}>
+                        <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+                        <input
+                            type="text"
+                            placeholder="Search by Patient, Doctor or ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem 1rem 0.6rem 2.5rem',
+                                borderRadius: '0.5rem',
+                                border: '1px solid #e2e8f0',
+                                outline: 'none',
+                                fontSize: '0.875rem',
+                                backgroundColor: 'white'
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Filters */}
@@ -112,7 +139,7 @@ const AdminBookings = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {bookings?.length > 0 ? bookings.map((booking) => (
+                            {filteredBookings?.length > 0 ? filteredBookings.map((booking) => (
                                 <tr
                                     key={booking.id}
                                     style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.15s' }}

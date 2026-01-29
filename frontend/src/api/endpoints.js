@@ -11,7 +11,10 @@ const API_ENDPOINTS = {
     // Departments
     departments: {
         list: '/departments/',
+        create: '/departments/',
         detail: (id) => `/departments/${id}/`,
+        update: (id) => `/departments/${id}/`,
+        delete: (id) => `/departments/${id}/`,
     },
 
     // Doctors

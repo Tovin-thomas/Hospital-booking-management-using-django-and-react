@@ -66,19 +66,26 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
 
-class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
+class DepartmentViewSet(viewsets.ModelViewSet):
     """
-    List and retrieve departments.
-    GET /api/departments/
-    GET /api/departments/{id}/
+    Manage departments.
+    GET /api/departments/ - List (public)
+    POST /api/departments/ - Create (admin)
+    PUT /api/departments/{id}/ - Update (admin)
+    DELETE /api/departments/{id}/ - Delete (admin)
     """
     queryset = Departments.objects.all()
     serializer_class = DepartmentSerializer
-    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['dep_name', 'dep_decription']
     ordering_fields = ['dep_name']
     ordering = ['dep_name']
+    
+    def get_permissions(self):
+        """Allow public read access, but require admin for write access"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [AllowAny()]
 
 
 # ===========================

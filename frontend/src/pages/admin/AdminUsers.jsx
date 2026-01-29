@@ -9,6 +9,7 @@ import Loading from '../../components/common/Loading';
 const AdminUsers = () => {
     const queryClient = useQueryClient();
     const [editingUser, setEditingUser] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Fetch Users
     const { data: usersList, isLoading: isLoadingUsers, error: usersError } = useQuery({
@@ -81,7 +82,7 @@ const AdminUsers = () => {
     // Merge Data
     const users = React.useMemo(() => {
         if (!usersList) return [];
-        return usersList.map(user => {
+        let result = usersList.map(user => {
             const userBookings = bookingsList?.filter(b => b.user === user.id) || [];
             return {
                 id: user.id,
@@ -95,7 +96,17 @@ const AdminUsers = () => {
                 joined: user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A',
             };
         });
-    }, [usersList, bookingsList]);
+
+        if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase();
+            result = result.filter(user =>
+                user.name.toLowerCase().includes(lowerTerm) ||
+                user.email.toLowerCase().includes(lowerTerm) ||
+                user.username.toLowerCase().includes(lowerTerm)
+            );
+        }
+        return result;
+    }, [usersList, bookingsList, searchTerm]);
 
     if (isLoadingUsers || isLoadingBookings) return <AdminLayout><Loading /></AdminLayout>;
 
@@ -118,6 +129,29 @@ const AdminUsers = () => {
                 </div>
                 <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600 }}>
                     Total Users: {users.length}
+                </div>
+            </div>
+
+            {/* Search Filter */}
+            <div style={{ marginBottom: '2rem', maxWidth: '400px' }}>
+                <div style={{ position: 'relative' }}>
+                    <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.875rem 1rem 0.875rem 2.5rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #e2e8f0',
+                            outline: 'none',
+                            fontSize: '0.9375rem',
+                            backgroundColor: 'white',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                    />
                 </div>
             </div>
 

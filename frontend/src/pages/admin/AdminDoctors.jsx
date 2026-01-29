@@ -9,6 +9,8 @@ import { toast } from 'react-toastify';
 const AdminDoctors = () => {
     const [showModal, setShowModal] = useState(false);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [deptFilter, setDeptFilter] = useState('all');
     const queryClient = useQueryClient();
 
     const { data: doctors, isLoading } = useQuery({
@@ -27,6 +29,18 @@ const AdminDoctors = () => {
         },
     });
 
+    // Filter Logic
+    const filteredDoctors = doctors?.filter(doctor => {
+        const matchesSearch = (
+            doctor.doc_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doctor.doc_spec?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doctor.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doctor.username?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        const matchesDept = deptFilter === 'all' || doctor.department_name === deptFilter || doctor.department_id?.toString() === deptFilter;
+        return matchesSearch && matchesDept;
+    });
+
     if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
 
     return (
@@ -38,7 +52,7 @@ const AdminDoctors = () => {
                         Manage Doctors
                     </h2>
                     <p style={{ margin: '0.5rem 0 0', color: '#64748b' }}>
-                        {doctors?.length || 0} total doctors in the system
+                        {filteredDoctors?.length || 0} doctors found
                     </p>
                 </div>
                 <button
@@ -77,6 +91,49 @@ const AdminDoctors = () => {
                 </button>
             </div>
 
+            {/* Filters */}
+            <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '1rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                    <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+                    <input
+                        type="text"
+                        placeholder="Search doctors by name, email, or spec..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem 0.75rem 2.5rem',
+                            borderRadius: '0.5rem',
+                            border: '1px solid #e2e8f0',
+                            outline: 'none',
+                            fontSize: '0.875rem',
+                            backgroundColor: '#f8fafc'
+                        }}
+                    />
+                </div>
+                <div style={{ width: '250px' }}>
+                    <select
+                        value={deptFilter}
+                        onChange={(e) => setDeptFilter(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '0.5rem',
+                            border: '1px solid #e2e8f0',
+                            outline: 'none',
+                            fontSize: '0.875rem',
+                            backgroundColor: '#f8fafc',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="all">All Departments</option>
+                        {departments?.map(dept => (
+                            <option key={dept.id} value={dept.dep_name}>{dept.dep_name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             {/* Doctors Table */}
             <div style={{
                 backgroundColor: 'white',
@@ -111,111 +168,123 @@ const AdminDoctors = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {doctors?.map((doctor) => (
-                            <tr key={doctor.id} style={{
-                                borderBottom: '1px solid #e2e8f0',
-                                transition: 'background-color 0.15s'
-                            }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                            >
-                                <td style={{ padding: '1.25rem 1.5rem', color: '#64748b', fontWeight: 600 }}>
-                                    #{doctor.id}
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{
-                                            width: '48px',
-                                            height: '48px',
-                                            borderRadius: '0.75rem',
-                                            backgroundColor: '#dbeafe',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1.25rem',
-                                            fontWeight: 700,
-                                            color: '#3b82f6'
+                        {filteredDoctors?.length > 0 ? (
+                            filteredDoctors.map((doctor) => (
+                                <tr key={doctor.id} style={{
+                                    borderBottom: '1px solid #e2e8f0',
+                                    transition: 'background-color 0.15s'
+                                }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                >
+                                    <td style={{ padding: '1.25rem 1.5rem', color: '#64748b', fontWeight: 600 }}>
+                                        #{doctor.id}
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{
+                                                width: '48px',
+                                                height: '48px',
+                                                borderRadius: '0.75rem',
+                                                backgroundColor: '#dbeafe',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1.25rem',
+                                                fontWeight: 700,
+                                                color: '#3b82f6'
+                                            }}>
+                                                {doctor.doc_name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: 600, color: '#1e293b' }}>Dr. {doctor.doc_name}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: 500 }}>
+                                        {doctor.doc_spec}
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem', color: '#475569' }}>
+                                        {doctor.department_name}
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            {doctor.username ? (
+                                                <>
+                                                    <div style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: 500 }}>
+                                                        <i className="fas fa-user" style={{ marginRight: '0.5rem', color: '#3b82f6', fontSize: '0.75rem' }}></i>
+                                                        {doctor.username}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                                                        <i className="fas fa-envelope" style={{ marginRight: '0.5rem', color: '#64748b', fontSize: '0.7rem' }}></i>
+                                                        {doctor.email || 'No email'}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8125rem', color: '#ef4444', fontStyle: 'italic' }}>
+                                                    <i className="fas fa-exclamation-circle" style={{ marginRight: '0.5rem' }}></i>
+                                                    No account
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <span style={{
+                                            padding: '0.375rem 0.875rem',
+                                            borderRadius: '9999px',
+                                            fontSize: '0.8125rem',
+                                            fontWeight: 600,
+                                            backgroundColor: doctor.current_status === 'Present' ? '#d1fae5' : '#fee2e2',
+                                            color: doctor.current_status === 'Present' ? '#059669' : '#dc2626'
                                         }}>
-                                            {doctor.doc_name.charAt(0)}
+                                            {doctor.current_status}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedDoctor(doctor);
+                                                    setShowModal(true);
+                                                }}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    backgroundColor: '#f1f5f9',
+                                                    color: '#3b82f6',
+                                                    border: 'none',
+                                                    borderRadius: '0.5rem',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.875rem',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#3b82f6';
+                                                    e.currentTarget.style.color = 'white';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                                    e.currentTarget.style.color = '#3b82f6';
+                                                }}
+                                            >
+                                                <i className="fas fa-edit" style={{ marginRight: '0.25rem' }}></i>
+                                                Edit
+                                            </button>
                                         </div>
-                                        <div>
-                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>Dr. {doctor.doc_name}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: 500 }}>
-                                    {doctor.doc_spec}
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem', color: '#475569' }}>
-                                    {doctor.department_name}
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                        {doctor.username ? (
-                                            <>
-                                                <div style={{ fontSize: '0.875rem', color: '#1e293b', fontWeight: 500 }}>
-                                                    <i className="fas fa-user" style={{ marginRight: '0.5rem', color: '#3b82f6', fontSize: '0.75rem' }}></i>
-                                                    {doctor.username}
-                                                </div>
-                                                <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                                                    <i className="fas fa-envelope" style={{ marginRight: '0.5rem', color: '#64748b', fontSize: '0.7rem' }}></i>
-                                                    {doctor.email || 'No email'}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <span style={{ fontSize: '0.8125rem', color: '#ef4444', fontStyle: 'italic' }}>
-                                                <i className="fas fa-exclamation-circle" style={{ marginRight: '0.5rem' }}></i>
-                                                No account
-                                            </span>
-                                        )}
-                                    </div>
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem' }}>
-                                    <span style={{
-                                        padding: '0.375rem 0.875rem',
-                                        borderRadius: '9999px',
-                                        fontSize: '0.8125rem',
-                                        fontWeight: 600,
-                                        backgroundColor: doctor.current_status === 'Present' ? '#d1fae5' : '#fee2e2',
-                                        color: doctor.current_status === 'Present' ? '#059669' : '#dc2626'
-                                    }}>
-                                        {doctor.current_status}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '1.25rem 1.5rem' }}>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedDoctor(doctor);
-                                                setShowModal(true);
-                                            }}
-                                            style={{
-                                                padding: '0.5rem 1rem',
-                                                backgroundColor: '#f1f5f9',
-                                                color: '#3b82f6',
-                                                border: 'none',
-                                                borderRadius: '0.5rem',
-                                                fontWeight: 600,
-                                                fontSize: '0.875rem',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#3b82f6';
-                                                e.currentTarget.style.color = 'white';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#f1f5f9';
-                                                e.currentTarget.style.color = '#3b82f6';
-                                            }}
-                                        >
-                                            <i className="fas fa-edit" style={{ marginRight: '0.25rem' }}></i>
-                                            Edit
-                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+                                    <i className="fas fa-user-md" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}></i>
+                                    <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>No doctors found</div>
+                                    <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                                        Try adjusting your search or filters
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
