@@ -47,6 +47,8 @@ const API_ENDPOINTS = {
     // Users (Admin)
     users: {
         list: '/users/',
+        update: (id) => `/users/${id}/`,
+        delete: (id) => `/users/${id}/`,
     },
 
     // Doctor Schedule Management

@@ -1,11 +1,15 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import axios from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 
 const AdminUsers = () => {
+    const queryClient = useQueryClient();
+    const [editingUser, setEditingUser] = useState(null);
+
     // Fetch Users
     const { data: usersList, isLoading: isLoadingUsers, error: usersError } = useQuery({
         queryKey: ['admin-users-list'],
@@ -15,7 +19,7 @@ const AdminUsers = () => {
         },
     });
 
-    // Fetch Bookings for Stats
+    // Fetch Bookings
     const { data: bookingsList, isLoading: isLoadingBookings } = useQuery({
         queryKey: ['admin-all-bookings'],
         queryFn: async () => {
@@ -24,23 +28,71 @@ const AdminUsers = () => {
         },
     });
 
-    // Combine Data
+    // Mutations
+    const deleteMutation = useMutation({
+        mutationFn: async (id) => {
+            await axios.delete(API_ENDPOINTS.users.delete(id));
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['admin-users-list']);
+            toast.success('User deleted successfully');
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.detail || 'Failed to delete user');
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: async ({ id, data }) => {
+            await axios.patch(API_ENDPOINTS.users.update(id), data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['admin-users-list']);
+            setEditingUser(null);
+            toast.success('User updated successfully');
+        },
+        onError: (err) => {
+            const msg = err.response?.data ? Object.values(err.response.data).flat().join(', ') : 'Failed to update user';
+            toast.error(msg);
+        }
+    });
+
+    // Handlers
+    const handleDelete = (id, name) => {
+        if (window.confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) {
+            deleteMutation.mutate(id);
+        }
+    };
+
+    const handleEditSave = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        updateMutation.mutate({
+            id: editingUser.id,
+            data: {
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name'),
+                email: formData.get('email'),
+                username: formData.get('username')
+            }
+        });
+    };
+
+    // Merge Data
     const users = React.useMemo(() => {
         if (!usersList) return [];
-
         return usersList.map(user => {
-            // Find bookings for this user
             const userBookings = bookingsList?.filter(b => b.user === user.id) || [];
-
             return {
                 id: user.id,
                 name: (user.first_name || user.last_name) ? `${user.first_name} ${user.last_name}`.trim() : user.username,
+                rawName: { first: user.first_name || '', last: user.last_name || '' },
                 username: user.username,
                 email: user.email,
                 role: user.role || (user.is_superuser ? 'Admin' : 'User'),
                 totalBookings: userBookings.length,
                 pendingBookings: userBookings.filter(b => b.status === 'pending').length,
-                acceptedBookings: userBookings.filter(b => b.status === 'accepted').length,
+                joined: user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A',
             };
         });
     }, [usersList, bookingsList]);
@@ -49,18 +101,9 @@ const AdminUsers = () => {
 
     if (usersError) return (
         <AdminLayout>
-            <div style={{ padding: '3rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                <h3 style={{ color: '#ef4444', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Error Loading Users</h3>
-                <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '1rem' }}>
-                    {usersError.message}
-                </p>
-                {usersError.response?.status === 404 && (
-                    <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '0.5rem', display: 'inline-block' }}>
-                        <strong>Tip:</strong> The 404 error means the server can't find the new endpoint.<br />
-                        Please <u>restart your backend server</u> to apply the latest changes.
-                    </div>
-                )}
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#ef4444' }}>
+                <h3>Error Loading Users</h3>
+                <p>{usersError.message}</p>
             </div>
         </AdminLayout>
     );
@@ -68,129 +111,102 @@ const AdminUsers = () => {
     return (
         <AdminLayout>
             {/* Header */}
-            <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
-                    Manage Users
-                </h2>
-                <p style={{ margin: 0, color: '#64748b' }}>
-                    {users.length} registered users
-                </p>
+            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>Manage Users</h2>
+                    <p style={{ margin: 0, color: '#64748b' }}>Full control over user accounts</p>
+                </div>
+                <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600 }}>
+                    Total Users: {users.length}
+                </div>
             </div>
 
-            {/* Users Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                gap: '1.5rem'
-            }}>
-                {users.map((user) => (
-                    <div
-                        key={user.id}
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '1rem',
-                            padding: '1.75rem',
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.2s',
-                            border: '1px solid #e2e8f0'
-                        }}
-                    >
-                        {/* User Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div style={{
-                                width: '56px',
-                                height: '56px',
-                                borderRadius: '50%',
-                                backgroundColor: user.role === 'admin' ? '#fef3c7' : '#dbeafe',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '1.5rem',
-                                fontWeight: 700,
-                                color: user.role === 'admin' ? '#d97706' : '#3b82f6',
-                                flexShrink: 0
-                            }}>
-                                {user.name?.charAt(0).toUpperCase() || 'U'}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.125rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {user.name}
-                                </h3>
-                                <div style={{ fontSize: '0.875rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span>@{user.username}</span>
-                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email || 'No email'}</span>
-                                </div>
-                            </div>
-                        </div>
+            {/* Table */}
+            <div style={{ backgroundColor: 'white', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>User</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Role</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Stats</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Joined</th>
+                                <th style={{ padding: '1rem', textAlign: 'right', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map(user => (
+                                <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{user.name}</div>
+                                            <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.email}</div>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{
+                                            padding: '0.25rem 0.75rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700,
+                                            backgroundColor: user.role === 'admin' ? '#fff7ed' : '#f0f9ff',
+                                            color: user.role === 'admin' ? '#c2410c' : '#0369a1'
+                                        }}>
+                                            {user.role}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.totalBookings} Bookings</div>
+                                    </td>
+                                    <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>{user.joined}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <button onClick={() => setEditingUser(user)} style={{ marginRight: '0.5rem', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }} title="Edit">
+                                            <i className="fas fa-edit"></i>
+                                        </button>
+                                        <button onClick={() => handleDelete(user.id, user.name)} style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete">
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                        {/* Stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#f8fafc',
-                                borderRadius: '0.5rem',
-                                textAlign: 'center',
-                                border: '1px solid #f1f5f9'
-                            }}>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.1rem' }}>
-                                    {user.totalBookings}
+            {/* Edit Modal */}
+            {editingUser && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                    <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '1rem', width: '400px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.5rem', color: '#1e293b' }}>Edit User</h3>
+                        <form onSubmit={handleEditSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#64748b' }}>Username</label>
+                                <input name="username" defaultValue={editingUser.username} className="form-input" style={{ width: '100%' }} required />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#64748b' }}>Email</label>
+                                <input name="email" type="email" defaultValue={editingUser.email} className="form-input" style={{ width: '100%' }} required />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#64748b' }}>First Name</label>
+                                    <input name="first_name" defaultValue={editingUser.rawName.first} className="form-input" style={{ width: '100%' }} />
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    Bookings
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#64748b' }}>Last Name</label>
+                                    <input name="last_name" defaultValue={editingUser.rawName.last} className="form-input" style={{ width: '100%' }} />
                                 </div>
                             </div>
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#fffbeb',
-                                borderRadius: '0.5rem',
-                                textAlign: 'center',
-                                border: '1px solid #fef3c7'
-                            }}>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706', marginBottom: '0.1rem' }}>
-                                    {user.pendingBookings}
-                                </div>
-                                <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    Pending
-                                </div>
-                            </div>
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#ecfdf5',
-                                borderRadius: '0.5rem',
-                                textAlign: 'center',
-                                border: '1px solid #a7f3d0'
-                            }}>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669', marginBottom: '0.1rem' }}>
-                                    {user.acceptedBookings}
-                                </div>
-                                <div style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    Active
-                                </div>
-                            </div>
-                        </div>
 
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
-                            User ID: {user.id}
-                        </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={() => setEditingUser(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', fontWeight: 600, color: '#64748b' }}>Cancel</button>
+                                <button type="submit" disabled={updateMutation.isPending} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                    {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                ))}
-            </div>
-
-            {users.length === 0 && !isLoadingUsers && (
-                <div style={{
-                    backgroundColor: 'white',
-                    borderRadius: '1rem',
-                    padding: '4rem',
-                    textAlign: 'center',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                }}>
-                    <i className="fas fa-users" style={{ fontSize: '4rem', color: '#e2e8f0', marginBottom: '1rem' }}></i>
-                    <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>
-                        No Users Found
-                    </h3>
-                    <p style={{ margin: 0, color: '#64748b' }}>
-                        The system has no registered users yet.
-                    </p>
                 </div>
             )}
         </AdminLayout>
