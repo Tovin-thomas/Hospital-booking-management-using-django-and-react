@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from '../api/axios';
 import API_ENDPOINTS from '../api/endpoints';
@@ -7,6 +7,7 @@ import DoctorCard from '../components/doctors/DoctorCard';
 import Loading from '../components/common/Loading';
 
 const Doctors = () => {
+    const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
 
@@ -27,6 +28,14 @@ const Doctors = () => {
             return response.data.results || response.data;
         },
     });
+
+    // Read department from URL parameter on load
+    useEffect(() => {
+        const deptParam = searchParams.get('department');
+        if (deptParam) {
+            setSelectedDepartment(deptParam);
+        }
+    }, [searchParams]);
 
     // Filter doctors
     const filteredDoctors = doctors?.filter(doctor => {
