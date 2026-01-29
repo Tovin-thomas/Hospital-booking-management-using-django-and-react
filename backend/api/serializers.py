@@ -11,10 +11,19 @@ from datetime import date, time, datetime, timedelta
 # ===========================
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role']
         read_only_fields = ['id', 'is_staff', 'is_superuser']
+
+    def get_role(self, obj):
+        if obj.is_superuser:
+            return 'admin'
+        if Doctors.objects.filter(user=obj).exists():
+            return 'doctor'
+        return 'patient'
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -108,12 +117,15 @@ class DoctorListSerializer(serializers.ModelSerializer):
     doc_image_url = serializers.SerializerMethodField()
     current_status = serializers.ReadOnlyField()
     availabilities = DoctorAvailabilitySerializer(many=True, read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True, allow_null=True)
+    email = serializers.EmailField(source='user.email', read_only=True, allow_null=True)
     
     class Meta:
         model = Doctors
         fields = [
             'id', 'doc_name', 'doc_spec', 'department_name', 
-            'department_id', 'doc_image_url', 'current_status', 'availabilities'
+            'department_id', 'doc_image_url', 'current_status', 'availabilities',
+            'username', 'email'
         ]
     
     def get_doc_image_url(self, obj):
@@ -123,6 +135,130 @@ class DoctorListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.doc_image.url)
             return obj.doc_image.url
         return None
+
+
+class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating doctors with user accounts"""
+    username = serializers.CharField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    email = serializers.EmailField(write_only=True, required=False)
+    department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Departments.objects.all(),
+        source='dep_name',
+        write_only=True
+    )
+    department_name = serializers.CharField(source='dep_name.dep_name', read_only=True)
+    department_id_read = serializers.IntegerField(source='dep_name.id', read_only=True)
+    current_status = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Doctors
+        fields = [
+            'id', 'doc_name', 'doc_spec', 'department_id', 'department_name',
+            'department_id_read', 'current_status', 'username', 'password', 'email'
+        ]
+        read_only_fields = ['id', 'current_status']
+    
+    def validate(self, attrs):
+        # For creation, require user credentials
+        if not self.instance:  # Creating new doctor
+            if not attrs.get('username'):
+                raise serializers.ValidationError({'username': 'Username is required for new doctors'})
+            if not attrs.get('password'):
+                raise serializers.ValidationError({'password': 'Password is required for new doctors'})
+            if not attrs.get('email'):
+                raise serializers.ValidationError({'email': 'Email is required for new doctors'})
+            
+            # Check if username exists
+            if User.objects.filter(username=attrs['username']).exists():
+                raise serializers.ValidationError({'username': 'This username is already taken'})
+            
+            # Check if email exists
+            if User.objects.filter(email=attrs['email']).exists():
+                raise serializers.ValidationError({'email': 'This email is already registered'})
+        else:  # Updating existing doctor
+            # If creating a new user account (username provided but no existing user)
+            if not self.instance.user and attrs.get('username'):
+                if not attrs.get('password'):
+                     raise serializers.ValidationError({'password': 'Password is required when creating a new user account'})
+                if not attrs.get('email'):
+                     raise serializers.ValidationError({'email': 'Email is required when creating a new user account'})
+
+            # If username is being changed, check if new username is available
+            if attrs.get('username'):
+                # Check if doctor has a user account
+                if self.instance.user and attrs['username'] != self.instance.user.username:
+                    if User.objects.filter(username=attrs['username']).exists():
+                        raise serializers.ValidationError({'username': 'This username is already taken'})
+                elif not self.instance.user:
+                    # Creating user for doctor that doesn't have one
+                    if User.objects.filter(username=attrs['username']).exists():
+                        raise serializers.ValidationError({'username': 'This username is already taken'})
+            
+            # If email is being changed, check if new email is available
+            if attrs.get('email'):
+                if self.instance.user and attrs['email'] != self.instance.user.email:
+                    if User.objects.filter(email=attrs['email']).exists():
+                        raise serializers.ValidationError({'email': 'This email is already registered'})
+                elif not self.instance.user:
+                    # Creating user for doctor that doesn't have one
+                    if User.objects.filter(email=attrs['email']).exists():
+                        raise serializers.ValidationError({'email': 'This email is already registered'})
+        
+        return attrs
+    
+    def create(self, validated_data):
+        # Extract user-related fields
+        username = validated_data.pop('username')
+        password = validated_data.pop('password')
+        email = validated_data.pop('email')
+        
+        # Create user account for doctor
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            is_staff=True  # Doctors are staff to access their dashboard
+        )
+        
+        # Create doctor with linked user
+        doctor = Doctors.objects.create(user=user, **validated_data)
+        return doctor
+    
+    def update(self, instance, validated_data):
+        # Extract user-related fields if provided
+        username = validated_data.pop('username', None)
+        password = validated_data.pop('password', None)
+        email = validated_data.pop('email', None)
+        
+        # Update doctor fields
+        instance.doc_name = validated_data.get('doc_name', instance.doc_name)
+        instance.doc_spec = validated_data.get('doc_spec', instance.doc_spec)
+        instance.dep_name = validated_data.get('dep_name', instance.dep_name)
+        instance.save()
+        
+        # If doctor doesn't have a user account and credentials are provided, create one
+        if not instance.user and username and password and email:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                is_staff=True
+            )
+            instance.user = user
+            instance.save()
+        # Update existing user if exists and fields provided
+        elif instance.user:
+            if username:
+                instance.user.username = username
+            if email:
+                instance.user.email = email
+            if password:
+                instance.user.set_password(password)
+            if username or email or password:
+                instance.user.save()
+        
+        return instance
 
 
 # ===========================
@@ -187,9 +323,9 @@ class BookingSerializer(serializers.ModelSerializer):
                     'appointment_time': f'Appointment time must be between {availability.start_time.strftime("%H:%M")} and {availability.end_time.strftime("%H:%M")}.'
                 })
             
-            # Check for conflicting appointments (15-minute slots)
+            # Check for conflicting appointments (20-minute slots)
             slot_start = datetime.combine(booking_date, appointment_time)
-            slot_end = slot_start + timedelta(minutes=15)
+            slot_end = slot_start + timedelta(minutes=20)
             
             # Exclude current booking if updating
             conflicting_bookings = Booking.objects.filter(
@@ -204,7 +340,7 @@ class BookingSerializer(serializers.ModelSerializer):
             for booking in conflicting_bookings:
                 if booking.appointment_time:
                     existing_start = datetime.combine(booking_date, booking.appointment_time)
-                    existing_end = existing_start + timedelta(minutes=15)
+                    existing_end = existing_start + timedelta(minutes=20)
                     
                     if (slot_start < existing_end and slot_end > existing_start):
                         raise serializers.ValidationError({
@@ -224,6 +360,7 @@ class BookingSerializer(serializers.ModelSerializer):
 class BookingListSerializer(serializers.ModelSerializer):
     """Simplified serializer for booking lists"""
     doctor_name = serializers.CharField(source='doc_name.doc_name', read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     formatted_date = serializers.ReadOnlyField()
     formatted_time = serializers.ReadOnlyField()
@@ -231,7 +368,7 @@ class BookingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'p_name', 'doctor_name', 'booking_date', 'appointment_time',
+            'id', 'p_name', 'user_name', 'doctor_name', 'booking_date', 'appointment_time',
             'status', 'status_display', 'formatted_date', 'formatted_time'
         ]
 

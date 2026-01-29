@@ -10,6 +10,7 @@ const Navbar = () => {
 
     // Hide navigation links on auth pages
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+    const isDoctor = user?.role === 'doctor';
 
     const navLinkStyle = {
         color: '#64748b',
@@ -65,7 +66,7 @@ const Navbar = () => {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    {!isAuthPage && (
+                    {!isAuthPage && !isDoctor && (
                         <div style={{
                             display: 'none',
                             gap: '0.5rem',
@@ -208,7 +209,7 @@ const Navbar = () => {
                                 </div>
 
                                 {/* Book Appointment CTA */}
-                                {!isAuthPage && (
+                                {!isAuthPage && !isDoctor && (
                                     <Link to="/doctors" className="btn btn-primary" style={{
                                         padding: '0.75rem 1.5rem',
                                         fontWeight: 600,
@@ -238,7 +239,7 @@ const Navbar = () => {
                         )}
 
                         {/* Mobile Menu Toggle */}
-                        {!isAuthPage && (
+                        {!isAuthPage && !isDoctor && (
                             <button
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                                 style={{
@@ -258,7 +259,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Mobile Menu */}
-                {mobileMenuOpen && !isAuthPage && (
+                {mobileMenuOpen && !isAuthPage && !isDoctor && (
                     <div style={{
                         display: 'none',
                         flexDirection: 'column',

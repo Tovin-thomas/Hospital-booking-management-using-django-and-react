@@ -11,7 +11,7 @@ from bookings.models import Booking
 from core.models import Contact
 from .serializers import (
     UserSerializer, UserRegistrationSerializer,
-    DoctorSerializer, DoctorListSerializer,
+    DoctorSerializer, DoctorListSerializer, DoctorCreateUpdateSerializer,
     DepartmentSerializer, DoctorAvailabilitySerializer, DoctorLeaveSerializer,
     BookingSerializer, BookingListSerializer, ContactSerializer
 )
@@ -76,25 +76,35 @@ class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
 # Doctor Views
 # ===========================
 
-class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
+class DoctorViewSet(viewsets.ModelViewSet):
     """
-    List and retrieve doctors with their availability.
-    GET /api/doctors/
-    GET /api/doctors/{id}/
-    GET /api/doctors/{id}/availability/
-    GET /api/doctors/{id}/leaves/
-    GET /api/doctors/{id}/available_slots/?date=YYYY-MM-DD
+    CRUD operations for doctors.
+    GET /api/doctors/ - List all doctors (public)
+    POST /api/doctors/ - Create new doctor (admin only)
+    GET /api/doctors/{id}/ - Get doctor details (public)
+    PUT /api/doctors/{id}/ - Update doctor (admin only)
+    DELETE /api/doctors/{id}/ - Delete doctor (admin only)
+    GET /api/doctors/{id}/availability/ - Get availability
+    GET /api/doctors/{id}/leaves/ - Get leaves
+    GET /api/doctors/{id}/available_slots/?date=YYYY-MM-DD - Get available slots
     """
-    queryset = Doctors.objects.all().select_related('dep_name').prefetch_related('availabilities', 'leaves')
-    permission_classes = [AllowAny]
+    queryset = Doctors.objects.all().select_related('dep_name', 'user').prefetch_related('availabilities', 'leaves')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['dep_name', 'doc_spec']
     search_fields = ['doc_name', 'doc_spec']
     ordering_fields = ['doc_name']
     ordering = ['doc_name']
     
+    def get_permissions(self):
+        """Allow public read access, but require admin for create/update/delete"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [AllowAny()]
+    
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action in ['create', 'update', 'partial_update']:
+            return DoctorCreateUpdateSerializer
+        elif self.action == 'list':
             return DoctorListSerializer
         return DoctorSerializer
     
@@ -165,7 +175,7 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
                 'slots': []
             })
         
-        # Generate 15-minute slots
+        # Generate 20-minute slots
         slots = []
         current_time = datetime.combine(booking_date, availability.start_time)
         end_time = datetime.combine(booking_date, availability.end_time)
@@ -182,12 +192,16 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
         while current_time < end_time:
             slot_time = current_time.time()
             
+            # Ensure the slot fits within the shift (end time logic)
+            # If 20 min slot pushes past end_time, we might exclude it depending on rules.
+            # Assuming standard logic: start of slot < end_time
+            
             slots.append({
                 'time': slot_time.strftime('%H:%M'),
                 'available': slot_time not in booked_times
             })
             
-            current_time += timedelta(minutes=15)
+            current_time += timedelta(minutes=20)
         
         return Response({
             'available': True,
@@ -352,8 +366,8 @@ def dashboard_stats(request):
     user = request.user
     stats = {}
     
-    if user.is_staff:
-        # Admin stats
+    if user.is_superuser:
+        # Admin stats (Superuser only)
         stats = {
             'role': 'admin',
             'total_doctors': Doctors.objects.count(),
@@ -368,7 +382,7 @@ def dashboard_stats(request):
                 status__in=['pending', 'accepted']
             ).count(),
         }
-    elif hasattr(user, 'doctors'):
+    elif Doctors.objects.filter(user=user).exists():
         # Doctor stats
         doctor = user.doctors
         today = date.today()
@@ -405,6 +419,52 @@ def dashboard_stats(request):
         }
     
     return Response(stats)
+
+
+# ===========================
+# Doctor Schedule Views
+# ===========================
+
+class DoctorAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = DoctorAvailability.objects.all()
+    serializer_class = DoctorAvailabilitySerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DoctorAvailability.objects.all()
+        if Doctors.objects.filter(user=user).exists():
+            return DoctorAvailability.objects.filter(doctor__user=user)
+        return DoctorAvailability.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if Doctors.objects.filter(user=user).exists():
+            serializer.save(doctor=user.doctors)
+        else:
+            serializer.save()
+
+
+class DoctorLeaveViewSet(viewsets.ModelViewSet):
+    queryset = DoctorLeave.objects.all()
+    serializer_class = DoctorLeaveSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DoctorLeave.objects.all()
+        if Doctors.objects.filter(user=user).exists():
+            return DoctorLeave.objects.filter(doctor__user=user)
+        return DoctorLeave.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if Doctors.objects.filter(user=user).exists():
+            serializer.save(doctor=user.doctors)
+        else:
+            serializer.save()
 
 
 @api_view(['GET'])

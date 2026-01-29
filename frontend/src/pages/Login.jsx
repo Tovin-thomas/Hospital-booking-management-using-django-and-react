@@ -30,9 +30,10 @@ const Login = () => {
         setLoading(false);
 
         if (result.success) {
-            // Check if user is admin and redirect accordingly
-            const isAdmin = result.user?.is_staff || result.user?.is_superuser;
-            const redirectPath = isAdmin ? '/admin/dashboard' : (from !== '/dashboard' ? from : '/dashboard');
+            // Only redirect SUPERUSERS to admin panel
+            // Doctors are 'is_staff' but should see the normal dashboard (or doctor-specific view)
+            const isSuperUser = result.user?.is_superuser;
+            const redirectPath = isSuperUser ? '/admin/dashboard' : (from !== '/dashboard' ? from : '/dashboard');
             navigate(redirectPath, { replace: true });
         }
     };

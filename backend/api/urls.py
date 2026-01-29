@@ -6,7 +6,8 @@ from .views import (
     UserRegistrationView, UserProfileView,
     DepartmentViewSet, DoctorViewSet,
     BookingViewSet, ContactViewSet,
-    dashboard_stats, api_root
+    dashboard_stats, api_root,
+    DoctorAvailabilityViewSet, DoctorLeaveViewSet
 )
 
 # Create router and register viewsets
@@ -15,6 +16,8 @@ router.register(r'departments', DepartmentViewSet, basename='department')
 router.register(r'doctors', DoctorViewSet, basename='doctor')
 router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'contacts', ContactViewSet, basename='contact')
+router.register(r'doctor-availability', DoctorAvailabilityViewSet, basename='doctor-availability')
+router.register(r'doctor-leaves', DoctorLeaveViewSet, basename='doctor-leaves')
 
 urlpatterns = [
     # API Root

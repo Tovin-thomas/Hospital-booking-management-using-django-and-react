@@ -1,5 +1,5 @@
 from rest_framework import permissions
-
+from doctors.models import Doctors
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """
@@ -34,14 +34,14 @@ class IsDoctorOrAdmin(permissions.BasePermission):
         if request.user.is_staff:
             return True
         
-        return hasattr(request.user, 'doctors')
+        return Doctors.objects.filter(user=request.user).exists()
     
     def has_object_permission(self, request, view, obj):
         if request.user.is_staff:
             return True
         
         # For bookings, check if user is the assigned doctor
-        if hasattr(obj, 'doc_name') and hasattr(request.user, 'doctors'):
-            return obj.doc_name == request.user.doctors
+        if hasattr(obj, 'doc_name') and Doctors.objects.filter(user=request.user).exists():
+            return obj.doc_name.user == request.user
         
         return False

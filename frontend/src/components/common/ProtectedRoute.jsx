@@ -16,16 +16,17 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    const isAdmin = user?.is_staff || user?.is_superuser;
-
-    // Admin trying to access patient pages - redirect to admin panel
-    if (isAdmin && !location.pathname.startsWith('/admin')) {
+    // Only redirect SUPERUSERS to admin panel
+    // Staff (Doctors) should be allowed to access the normal dashboard/pages
+    if (user?.is_superuser && !location.pathname.startsWith('/admin')) {
         return <Navigate to="/admin/dashboard" replace />;
     }
 
     // Non-admin trying to access admin pages
-    if (requireAdmin && !isAdmin) {
-        return <Navigate to="/" replace />;
+    // Strictly require SUPERUSER for admin routes
+    const isSuperUser = user?.is_superuser;
+    if (requireAdmin && !isSuperUser) {
+        return <Navigate to="/dashboard" replace />;
     }
 
     return children;

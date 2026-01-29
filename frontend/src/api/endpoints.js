@@ -18,6 +18,9 @@ const API_ENDPOINTS = {
     doctors: {
         list: '/doctors/',
         detail: (id) => `/doctors/${id}/`,
+        create: '/doctors/',
+        update: (id) => `/doctors/${id}/`,
+        delete: (id) => `/doctors/${id}/`,
         availability: (id) => `/doctors/${id}/availability/`,
         leaves: (id) => `/doctors/${id}/leaves/`,
         availableSlots: (id, date) => `/doctors/${id}/available_slots/?date=${date}`,
@@ -39,6 +42,19 @@ const API_ENDPOINTS = {
         create: '/contacts/',
         list: '/contacts/',
         markRead: (id) => `/contacts/${id}/mark_read/`,
+    },
+
+    // Doctor Schedule Management
+    doctorAvailability: {
+        list: '/doctor-availability/',
+        create: '/doctor-availability/',
+        update: (id) => `/doctor-availability/${id}/`,
+        delete: (id) => `/doctor-availability/${id}/`,
+    },
+    doctorLeaves: {
+        list: '/doctor-leaves/',
+        create: '/doctor-leaves/',
+        delete: (id) => `/doctor-leaves/${id}/`,
     },
 
     // Dashboard
