@@ -94,7 +94,7 @@ const DoctorCard = ({ doctor }) => {
                     {/* Weekly Schedule */}
                     <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
                         {doctor.availabilities && doctor.availabilities.length > 0 ? (
-                            doctor.availabilities.slice(0, 3).map((avail, idx) => (
+                            doctor.availabilities.map((avail, idx) => (
                                 <div key={idx} style={{ marginBottom: '0.25rem' }}>
                                     <span style={{ fontWeight: 700 }}>{avail.day_display}: </span>
                                     <span>{avail.start_time.substring(0, 5)} - {avail.end_time.substring(0, 5)}</span>

@@ -42,6 +42,7 @@ class DoctorAvailability(models.Model):
 
     class Meta:
         verbose_name_plural = "Doctor Availabilities"
+        ordering = ['day']
 
     def __str__(self):
         return f"{self.doctor.doc_name} - {self.get_day_display()} ({self.start_time} - {self.end_time})"
