@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
+    const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+    // Hide navigation links on auth pages
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
     const navLinkStyle = {
         color: '#64748b',
@@ -61,27 +65,29 @@ const Navbar = () => {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <div style={{
-                        display: 'none',
-                        gap: '0.5rem',
-                        alignItems: 'center',
-                    }} className="desktop-nav">
-                        <NavLink to="/" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
-                            Home
-                        </NavLink>
-                        <NavLink to="/about" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
-                            About
-                        </NavLink>
-                        <NavLink to="/doctors" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
-                            Doctors
-                        </NavLink>
-                        <NavLink to="/departments" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
-                            Departments
-                        </NavLink>
-                        <NavLink to="/contact" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
-                            Contact
-                        </NavLink>
-                    </div>
+                    {!isAuthPage && (
+                        <div style={{
+                            display: 'none',
+                            gap: '0.5rem',
+                            alignItems: 'center',
+                        }} className="desktop-nav">
+                            <NavLink to="/" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
+                                Home
+                            </NavLink>
+                            <NavLink to="/about" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
+                                About
+                            </NavLink>
+                            <NavLink to="/doctors" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
+                                Doctors
+                            </NavLink>
+                            <NavLink to="/departments" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
+                                Departments
+                            </NavLink>
+                            <NavLink to="/contact" style={({ isActive }) => isActive ? activeNavLinkStyle : navLinkStyle}>
+                                Contact
+                            </NavLink>
+                        </div>
+                    )}
 
                     {/* Right Side - Auth & CTA */}
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -224,25 +230,27 @@ const Navbar = () => {
                         )}
 
                         {/* Mobile Menu Toggle */}
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            style={{
-                                display: 'none',
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                fontSize: '1.5rem',
-                                color: '#64748b',
-                                cursor: 'pointer',
-                            }}
-                            className="mobile-toggle"
-                        >
-                            <i className={`fas fa-${mobileMenuOpen ? 'times' : 'bars'}`}></i>
-                        </button>
+                        {!isAuthPage && (
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                style={{
+                                    display: 'none',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    color: '#64748b',
+                                    cursor: 'pointer',
+                                }}
+                                className="mobile-toggle"
+                            >
+                                <i className={`fas fa-${mobileMenuOpen ? 'times' : 'bars'}`}></i>
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {/* Mobile Menu */}
-                {mobileMenuOpen && (
+                {mobileMenuOpen && !isAuthPage && (
                     <div style={{
                         display: 'none',
                         flexDirection: 'column',
