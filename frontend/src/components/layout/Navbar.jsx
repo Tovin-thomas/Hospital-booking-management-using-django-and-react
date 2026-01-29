@@ -156,24 +156,28 @@ const Navbar = () => {
                                                 <i className="fas fa-calendar-check" style={{ color: '#2563eb' }}></i>
                                                 My Appointments
                                             </Link>
-                                            <Link
-                                                to="/dashboard"
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.75rem',
-                                                    padding: '0.75rem 1rem',
-                                                    color: '#1e293b',
-                                                    textDecoration: 'none',
-                                                    transition: 'background-color 0.2s',
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                onClick={() => setUserDropdownOpen(false)}
-                                            >
-                                                <i className="fas fa-th-large" style={{ color: '#2563eb' }}></i>
-                                                Dashboard
-                                            </Link>
+
+                                            {/* Dashboard only for admins and doctors */}
+                                            {(user?.is_staff || user?.is_superuser) && (
+                                                <Link
+                                                    to="/dashboard"
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.75rem',
+                                                        padding: '0.75rem 1rem',
+                                                        color: '#1e293b',
+                                                        textDecoration: 'none',
+                                                        transition: 'background-color 0.2s',
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    onClick={() => setUserDropdownOpen(false)}
+                                                >
+                                                    <i className="fas fa-th-large" style={{ color: '#2563eb' }}></i>
+                                                    Dashboard
+                                                </Link>
+                                            )}
                                             <div style={{ borderTop: '1px solid #e2e8f0', margin: '0.5rem 0' }}></div>
                                             <button
                                                 onClick={() => {
