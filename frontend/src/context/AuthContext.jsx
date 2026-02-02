@@ -50,11 +50,13 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('access_token', access);
             localStorage.setItem('refresh_token', refresh);
 
-            // Load user profile
-            await loadUser();
+            // Fetch user profile directly and return it
+            const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
+            const userData = profileResponse.data;
+            setUser(userData);
 
             toast.success('Login successful!');
-            return { success: true, user: user }; // Return user data
+            return { success: true, user: userData }; // Return the actual user data
         } catch (error) {
             const message = error.response?.data?.detail || 'Login failed. Please check your credentials.';
             toast.error(message);

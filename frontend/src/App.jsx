@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import DoctorLayout from './components/layout/DoctorLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 // Public Pages
@@ -37,7 +38,7 @@ function App() {
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
 
-                    {/* Protected Patient/Doctor Routes */}
+                    {/* Protected Patient Routes */}
                     <Route path="booking/:doctorId" element={
                         <ProtectedRoute>
                             <Booking />
@@ -48,12 +49,16 @@ function App() {
                             <MyBookings />
                         </ProtectedRoute>
                     } />
-                    <Route path="dashboard" element={
-                        <ProtectedRoute requireDoctor>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    } />
                 </Route>
+
+                {/* Doctor Dashboard with DoctorLayout (separate from main Layout) */}
+                <Route path="/dashboard" element={
+                    <ProtectedRoute requireDoctor>
+                        <DoctorLayout>
+                            <Dashboard />
+                        </DoctorLayout>
+                    </ProtectedRoute>
+                } />
 
                 {/* Admin Panel Routes (No Layout - Uses AdminLayout internally) */}
                 <Route path="/admin">

@@ -32,10 +32,11 @@ const Login = () => {
         if (result.success) {
             // Redirect based on user role:
             // - Superusers go to admin dashboard
-            // - Doctors (is_staff but not superuser) go to their dashboard
+            // - Doctors (is_staff but not superuser, or role === 'doctor') go to their dashboard
             // - Regular patients go to home page
-            const isSuperUser = result.user?.is_superuser;
-            const isDoctor = result.user?.is_staff && !result.user?.is_superuser;
+            const user = result.user;
+            const isSuperUser = user?.is_superuser;
+            const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
 
             let redirectPath = '/'; // Default: home page for regular patients
 

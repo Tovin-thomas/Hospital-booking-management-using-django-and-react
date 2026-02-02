@@ -83,9 +83,12 @@ const AdminUsers = () => {
     const users = React.useMemo(() => {
         if (!usersList) return [];
 
-        // Filter to only include regular patients (not staff, not superuser)
+        // Filter to only include regular patients:
+        // - Must NOT be staff (doctors are is_staff=true)
+        // - Must NOT be superuser (admins are is_superuser=true)
+        // - Role should be 'patient' or undefined (regular users)
         let result = usersList
-            .filter(user => user.role === 'patient' || (!user.is_staff && !user.is_superuser))
+            .filter(user => !user.is_staff && !user.is_superuser && user.role !== 'doctor')
             .map(user => {
                 const userBookings = bookingsList?.filter(b => b.user === user.id) || [];
                 return {

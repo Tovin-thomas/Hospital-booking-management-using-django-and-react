@@ -10,7 +10,9 @@ const Navbar = () => {
 
     // Hide navigation links on auth pages
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-    const isDoctor = user?.role === 'doctor';
+    // Doctor detection: check role OR is_staff (but not superuser)
+    const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
+    const isAdmin = user?.is_superuser;
 
     const navLinkStyle = {
         color: '#64748b',
@@ -139,27 +141,8 @@ const Navbar = () => {
                                             border: '1px solid #e2e8f0',
                                             zIndex: 1001,
                                         }}>
-                                            <Link
-                                                to="/my-bookings"
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.75rem',
-                                                    padding: '0.75rem 1rem',
-                                                    color: '#1e293b',
-                                                    textDecoration: 'none',
-                                                    transition: 'background-color 0.2s',
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                onClick={() => setUserDropdownOpen(false)}
-                                            >
-                                                <i className="fas fa-calendar-check" style={{ color: '#2563eb' }}></i>
-                                                My Appointments
-                                            </Link>
-
-                                            {/* Dashboard only for admins and doctors */}
-                                            {(user?.is_staff || user?.is_superuser) && (
+                                            {/* Dashboard link for doctors (shown first) */}
+                                            {isDoctor && (
                                                 <Link
                                                     to="/dashboard"
                                                     style={{
@@ -176,7 +159,51 @@ const Navbar = () => {
                                                     onClick={() => setUserDropdownOpen(false)}
                                                 >
                                                     <i className="fas fa-th-large" style={{ color: '#2563eb' }}></i>
-                                                    Dashboard
+                                                    Doctor Dashboard
+                                                </Link>
+                                            )}
+
+                                            {/* My Appointments only for regular patients (not doctors/admins) */}
+                                            {!isDoctor && !isAdmin && (
+                                                <Link
+                                                    to="/my-bookings"
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.75rem',
+                                                        padding: '0.75rem 1rem',
+                                                        color: '#1e293b',
+                                                        textDecoration: 'none',
+                                                        transition: 'background-color 0.2s',
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    onClick={() => setUserDropdownOpen(false)}
+                                                >
+                                                    <i className="fas fa-calendar-check" style={{ color: '#2563eb' }}></i>
+                                                    My Appointments
+                                                </Link>
+                                            )}
+
+                                            {/* Admin Dashboard for superusers */}
+                                            {isAdmin && (
+                                                <Link
+                                                    to="/admin/dashboard"
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.75rem',
+                                                        padding: '0.75rem 1rem',
+                                                        color: '#1e293b',
+                                                        textDecoration: 'none',
+                                                        transition: 'background-color 0.2s',
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    onClick={() => setUserDropdownOpen(false)}
+                                                >
+                                                    <i className="fas fa-th-large" style={{ color: '#2563eb' }}></i>
+                                                    Admin Dashboard
                                                 </Link>
                                             )}
                                             <div style={{ borderTop: '1px solid #e2e8f0', margin: '0.5rem 0' }}></div>
@@ -208,8 +235,8 @@ const Navbar = () => {
                                     )}
                                 </div>
 
-                                {/* Book Appointment CTA */}
-                                {!isAuthPage && !isDoctor && (
+                                {/* Book Appointment CTA - Only for regular patients */}
+                                {!isAuthPage && !isDoctor && !isAdmin && (
                                     <Link to="/doctors" className="btn btn-primary" style={{
                                         padding: '0.75rem 1.5rem',
                                         fontWeight: 600,
@@ -238,8 +265,8 @@ const Navbar = () => {
                             </>
                         )}
 
-                        {/* Mobile Menu Toggle */}
-                        {!isAuthPage && !isDoctor && (
+                        {/* Mobile Menu Toggle - Only for regular patients */}
+                        {!isAuthPage && !isDoctor && !isAdmin && (
                             <button
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                                 style={{
@@ -258,8 +285,8 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                {/* Mobile Menu */}
-                {mobileMenuOpen && !isAuthPage && !isDoctor && (
+                {/* Mobile Menu - Only for regular patients */}
+                {mobileMenuOpen && !isAuthPage && !isDoctor && !isAdmin && (
                     <div style={{
                         display: 'none',
                         flexDirection: 'column',
