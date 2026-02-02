@@ -79,23 +79,26 @@ const AdminUsers = () => {
         });
     };
 
-    // Merge Data
+    // Merge Data - Filter to show only regular patients (not doctors or admins)
     const users = React.useMemo(() => {
         if (!usersList) return [];
-        let result = usersList.map(user => {
-            const userBookings = bookingsList?.filter(b => b.user === user.id) || [];
-            return {
-                id: user.id,
-                name: (user.first_name || user.last_name) ? `${user.first_name} ${user.last_name}`.trim() : user.username,
-                rawName: { first: user.first_name || '', last: user.last_name || '' },
-                username: user.username,
-                email: user.email,
-                role: user.role || (user.is_superuser ? 'Admin' : 'User'),
-                totalBookings: userBookings.length,
-                pendingBookings: userBookings.filter(b => b.status === 'pending').length,
-                joined: user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A',
-            };
-        });
+
+        // Filter to only include regular patients (not staff, not superuser)
+        let result = usersList
+            .filter(user => user.role === 'patient' || (!user.is_staff && !user.is_superuser))
+            .map(user => {
+                const userBookings = bookingsList?.filter(b => b.user === user.id) || [];
+                return {
+                    id: user.id,
+                    name: (user.first_name || user.last_name) ? `${user.first_name} ${user.last_name}`.trim() : user.username,
+                    rawName: { first: user.first_name || '', last: user.last_name || '' },
+                    username: user.username,
+                    email: user.email,
+                    totalBookings: userBookings.length,
+                    pendingBookings: userBookings.filter(b => b.status === 'pending').length,
+                    joined: user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A',
+                };
+            });
 
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
@@ -124,11 +127,11 @@ const AdminUsers = () => {
             {/* Header */}
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>Manage Users</h2>
-                    <p style={{ margin: 0, color: '#64748b' }}>Full control over user accounts</p>
+                    <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>Manage Patients</h2>
+                    <p style={{ margin: 0, color: '#64748b' }}>View and manage patient accounts</p>
                 </div>
                 <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600 }}>
-                    Total Users: {users.length}
+                    Total Patients: {users.length}
                 </div>
             </div>
 
@@ -138,7 +141,7 @@ const AdminUsers = () => {
                     <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
                     <input
                         type="text"
-                        placeholder="Search users..."
+                        placeholder="Search patients..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{
@@ -161,9 +164,8 @@ const AdminUsers = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>User</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Role</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Stats</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Patient</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Bookings</th>
                                 <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Joined</th>
                                 <th style={{ padding: '1rem', textAlign: 'right', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Actions</th>
                             </tr>
@@ -181,16 +183,10 @@ const AdminUsers = () => {
                                         </div>
                                     </td>
                                     <td style={{ padding: '1rem' }}>
-                                        <span style={{
-                                            padding: '0.25rem 0.75rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700,
-                                            backgroundColor: user.role === 'admin' ? '#fff7ed' : '#f0f9ff',
-                                            color: user.role === 'admin' ? '#c2410c' : '#0369a1'
-                                        }}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
                                         <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.totalBookings} Bookings</div>
+                                        {user.pendingBookings > 0 && (
+                                            <div style={{ fontSize: '0.75rem', color: '#f59e0b' }}>{user.pendingBookings} pending</div>
+                                        )}
                                     </td>
                                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>{user.joined}</td>
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
