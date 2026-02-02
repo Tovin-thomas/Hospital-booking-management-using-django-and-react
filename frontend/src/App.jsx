@@ -23,6 +23,7 @@ import AdminDepartments from './pages/admin/AdminDepartments';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminContacts from './pages/admin/AdminContacts';
+import AdminLeaves from './pages/admin/AdminLeaves';
 
 function App() {
     return (
@@ -80,6 +81,11 @@ function App() {
                     <Route path="bookings" element={
                         <ProtectedRoute requireAdmin>
                             <AdminBookings />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="leaves" element={
+                        <ProtectedRoute requireAdmin>
+                            <AdminLeaves />
                         </ProtectedRoute>
                     } />
                     <Route path="users" element={

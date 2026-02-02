@@ -11,6 +11,7 @@ const AdminLayout = ({ children }) => {
         { path: '/admin/doctors', icon: 'fas fa-user-md', label: 'Doctors' },
         { path: '/admin/departments', icon: 'fas fa-hospital', label: 'Departments' },
         { path: '/admin/bookings', icon: 'fas fa-calendar-check', label: 'Bookings' },
+        { path: '/admin/leaves', icon: 'fas fa-calendar-times', label: 'Doctor Leaves' },
         { path: '/admin/users', icon: 'fas fa-users', label: 'Users' },
         { path: '/admin/contacts', icon: 'fas fa-envelope', label: 'Messages' },
     ];
