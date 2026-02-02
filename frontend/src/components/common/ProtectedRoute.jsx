@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Loading from './Loading';
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, requireDoctor = false }) => {
     const { isAuthenticated, loading, user } = useAuth();
     const location = useLocation();
 
@@ -26,7 +26,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     // Strictly require SUPERUSER for admin routes
     const isSuperUser = user?.is_superuser;
     if (requireAdmin && !isSuperUser) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/" replace />;
+    }
+
+    // Route requires doctor/staff access (e.g., Dashboard)
+    // Regular patients should be redirected to home page
+    const isDoctor = user?.is_staff;
+    if (requireDoctor && !isDoctor && !isSuperUser) {
+        return <Navigate to="/" replace />;
     }
 
     return children;

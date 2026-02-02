@@ -49,7 +49,7 @@ function App() {
                         </ProtectedRoute>
                     } />
                     <Route path="dashboard" element={
-                        <ProtectedRoute>
+                        <ProtectedRoute requireDoctor>
                             <Dashboard />
                         </ProtectedRoute>
                     } />

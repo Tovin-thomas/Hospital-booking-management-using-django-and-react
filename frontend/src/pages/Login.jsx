@@ -12,7 +12,7 @@ const Login = () => {
         password: '',
     });
 
-    const from = location.state?.from?.pathname || '/dashboard';
+    const from = location.state?.from?.pathname || '/';
 
     const handleChange = (e) => {
         setFormData({
@@ -30,10 +30,24 @@ const Login = () => {
         setLoading(false);
 
         if (result.success) {
-            // Only redirect SUPERUSERS to admin panel
-            // Doctors are 'is_staff' but should see the normal dashboard (or doctor-specific view)
+            // Redirect based on user role:
+            // - Superusers go to admin dashboard
+            // - Doctors (is_staff but not superuser) go to their dashboard
+            // - Regular patients go to home page
             const isSuperUser = result.user?.is_superuser;
-            const redirectPath = isSuperUser ? '/admin/dashboard' : (from !== '/dashboard' ? from : '/dashboard');
+            const isDoctor = result.user?.is_staff && !result.user?.is_superuser;
+
+            let redirectPath = '/'; // Default: home page for regular patients
+
+            if (isSuperUser) {
+                redirectPath = '/admin/dashboard';
+            } else if (isDoctor) {
+                redirectPath = '/dashboard';
+            } else if (from !== '/' && from !== '/login' && from !== '/register') {
+                // If they were trying to access a specific page, redirect there
+                redirectPath = from;
+            }
+
             navigate(redirectPath, { replace: true });
         }
     };

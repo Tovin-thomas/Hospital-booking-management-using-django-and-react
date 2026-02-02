@@ -429,26 +429,41 @@ def dashboard_stats(request):
         }
     elif Doctors.objects.filter(user=user).exists():
         # Doctor stats
-        doctor = user.doctors
-        today = date.today()
-        stats = {
-            'role': 'doctor',
-            'doctor_name': doctor.doc_name,
-            'department': doctor.dep_name.dep_name,
-            'total_appointments': Booking.objects.filter(doc_name=doctor).count(),
-            'pending_appointments': Booking.objects.filter(doc_name=doctor, status='pending').count(),
-            'accepted_appointments': Booking.objects.filter(doc_name=doctor, status='accepted').count(),
-            'today_appointments': Booking.objects.filter(
-                doc_name=doctor,
-                booking_date=today,
-                status__in=['pending', 'accepted']
-            ).count(),
-            'upcoming_appointments': Booking.objects.filter(
-                doc_name=doctor,
-                booking_date__gt=today,
-                status__in=['pending', 'accepted']
-            ).count(),
-        }
+        try:
+            doctor = Doctors.objects.get(user=user)
+            today = date.today()
+            stats = {
+                'role': 'doctor',
+                'doctor_name': doctor.doc_name,
+                'department': doctor.dep_name.dep_name if doctor.dep_name else 'No Department',
+                'total_appointments': Booking.objects.filter(doc_name=doctor).count(),
+                'pending_appointments': Booking.objects.filter(doc_name=doctor, status='pending').count(),
+                'accepted_appointments': Booking.objects.filter(doc_name=doctor, status='accepted').count(),
+                'today_appointments': Booking.objects.filter(
+                    doc_name=doctor,
+                    booking_date=today,
+                    status__in=['pending', 'accepted']
+                ).count(),
+                'upcoming_appointments': Booking.objects.filter(
+                    doc_name=doctor,
+                    booking_date__gt=today,
+                    status__in=['pending', 'accepted']
+                ).count(),
+            }
+        except Exception as e:
+            # If there's an error loading doctor data, fall back to patient view
+            stats = {
+                'role': 'patient',
+                'total_bookings': Booking.objects.filter(user=user).count(),
+                'pending_bookings': Booking.objects.filter(user=user, status='pending').count(),
+                'accepted_bookings': Booking.objects.filter(user=user, status='accepted').count(),
+                'upcoming_bookings': Booking.objects.filter(
+                    user=user,
+                    booking_date__gte=date.today(),
+                    status__in=['pending', 'accepted']
+                ).count(),
+                'error': f'Doctor profile error: {str(e)}'
+            }
     else:
         # Patient stats
         stats = {
