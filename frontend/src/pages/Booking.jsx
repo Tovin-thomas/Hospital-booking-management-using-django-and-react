@@ -150,28 +150,41 @@ const Booking = () => {
                                 {slotsLoading ? (
                                     <Loading size="sm" text="Loading available slots..." />
                                 ) : slotsData?.available ? (
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                                        gap: '0.5rem',
-                                    }}>
-                                        {slotsData.slots.map(slot => (
-                                            <button
-                                                key={slot.time}
-                                                type="button"
-                                                onClick={() => setSelectedTime(slot.time)}
-                                                disabled={!slot.available}
-                                                className={`btn btn-sm ${selectedTime === slot.time ? 'btn-primary' :
-                                                    slot.available ? 'btn-outline' : 'btn-secondary'
-                                                    }`}
-                                                style={{
-                                                    opacity: slot.available ? 1 : 0.5,
-                                                    cursor: slot.available ? 'pointer' : 'not-allowed',
-                                                }}
-                                            >
-                                                {slot.time}
-                                            </button>
-                                        ))}
+                                    <div>
+                                        {slotsData.working_hours && (
+                                            <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '1rem' }}>
+                                                Working hours: {slotsData.working_hours.start} - {slotsData.working_hours.end}
+                                            </p>
+                                        )}
+                                        {slotsData.slots && slotsData.slots.length > 0 ? (
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                                                gap: '0.5rem',
+                                            }}>
+                                                {slotsData.slots.map(slot => (
+                                                    <button
+                                                        key={slot.time}
+                                                        type="button"
+                                                        onClick={() => setSelectedTime(slot.time)}
+                                                        disabled={!slot.available}
+                                                        className={`btn btn-sm ${selectedTime === slot.time ? 'btn-primary' :
+                                                            slot.available ? 'btn-outline' : 'btn-secondary'
+                                                            }`}
+                                                        style={{
+                                                            opacity: slot.available ? 1 : 0.5,
+                                                            cursor: slot.available ? 'pointer' : 'not-allowed',
+                                                        }}
+                                                    >
+                                                        {slot.time}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ color: 'var(--color-gray-600)' }}>
+                                                All slots are booked. Please select another date.
+                                            </p>
+                                        )}
                                     </div>
                                 ) : (
                                     <p style={{ color: 'var(--color-error)' }}>{slotsData?.reason}</p>

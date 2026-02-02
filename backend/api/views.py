@@ -227,6 +227,8 @@ class DoctorViewSet(viewsets.ModelViewSet):
             
             current_time += timedelta(minutes=20)
         
+
+
         return Response({
             'available': True,
             'date': date_str,
@@ -284,10 +286,29 @@ class BookingViewSet(viewsets.ModelViewSet):
             return BookingListSerializer
         return BookingSerializer
     
-    @action(detail=True, methods=['post'], permission_classes=[IsDoctorOrAdmin])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
         """Update booking status (for doctors/admin)"""
         booking = self.get_object()
+        user = request.user
+        
+        # Check if user is admin
+        is_admin = user.is_superuser or user.is_staff
+        
+        # Check if user is the doctor for this booking
+        is_assigned_doctor = False
+        try:
+            doctor = Doctors.objects.get(user=user)
+            is_assigned_doctor = booking.doc_name.id == doctor.id
+        except Doctors.DoesNotExist:
+            pass
+        
+        if not is_admin and not is_assigned_doctor:
+            return Response(
+                {'error': 'You can only update status for your own appointments'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         new_status = request.data.get('status')
         
         if not new_status:
@@ -463,6 +484,13 @@ class DoctorAvailabilityViewSet(viewsets.ModelViewSet):
         return DoctorAvailability.objects.none()
 
     def perform_create(self, serializer):
+        user = self.request.user
+        if Doctors.objects.filter(user=user).exists():
+            serializer.save(doctor=user.doctors)
+        else:
+            serializer.save()
+
+    def perform_update(self, serializer):
         user = self.request.user
         if Doctors.objects.filter(user=user).exists():
             serializer.save(doctor=user.doctors)

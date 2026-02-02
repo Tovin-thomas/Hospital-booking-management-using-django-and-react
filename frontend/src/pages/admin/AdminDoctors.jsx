@@ -344,8 +344,11 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
         },
         onError: (error) => {
             console.error('Doctor mutation error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
 
             const errors = error.response?.data;
+            const status = error.response?.status;
 
             // Handle specific validation errors
             if (errors && typeof errors === 'object' && !Array.isArray(errors)) {
@@ -377,14 +380,16 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
                 if (errorFields.length > 3) {
                     toast.error(`... and ${errorFields.length - 3} more validation errors. Check console for details.`);
                 }
-            } else if (error.response?.status === 400) {
+            } else if (status === 400) {
                 toast.error('Invalid data provided. Please check all fields.');
-            } else if (error.response?.status === 403) {
-                toast.error('You do not have permission to perform this action.');
-            } else if (error.response?.status === 500) {
-                toast.error('Server error. Please contact support.');
+            } else if (status === 403) {
+                toast.error('Permission denied. You must be logged in as Admin to edit doctors.');
+            } else if (status === 500) {
+                toast.error('Server error. Please check Django console for details.');
+            } else if (error.message === 'Network Error') {
+                toast.error('Network error. Please check if the server is running.');
             } else {
-                toast.error('Operation failed. Please try again.');
+                toast.error(`Operation failed (${status || 'unknown'}). Check browser console for details.`);
             }
         },
     });

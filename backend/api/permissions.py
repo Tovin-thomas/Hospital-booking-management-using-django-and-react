@@ -30,18 +30,24 @@ class IsDoctorOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-            
-        if request.user.is_staff:
+        
+        # Admin/superuser always allowed
+        if request.user.is_superuser or request.user.is_staff:
             return True
         
+        # Check if user is linked to a doctor profile
         return Doctors.objects.filter(user=request.user).exists()
     
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff:
+        # Admin/superuser always allowed
+        if request.user.is_superuser or request.user.is_staff:
             return True
         
         # For bookings, check if user is the assigned doctor
-        if hasattr(obj, 'doc_name') and Doctors.objects.filter(user=request.user).exists():
-            return obj.doc_name.user == request.user
+        if hasattr(obj, 'doc_name'):
+            doctor = Doctors.objects.filter(user=request.user).first()
+            if doctor:
+                return obj.doc_name.id == doctor.id
         
         return False
+

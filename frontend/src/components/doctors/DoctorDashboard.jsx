@@ -144,6 +144,8 @@ const Overview = ({ stats }) => (
 );
 
 const AppointmentsList = () => {
+    const queryClient = useQueryClient();
+
     const { data: bookings, isLoading } = useQuery({
         queryKey: ['doctor-bookings'],
         queryFn: async () => {
@@ -152,60 +154,171 @@ const AppointmentsList = () => {
         }
     });
 
+    const updateStatus = useMutation({
+        mutationFn: async ({ id, status }) => {
+            console.log('Updating status:', { id, status, url: API_ENDPOINTS.bookings.updateStatus(id) });
+            const response = await axios.post(API_ENDPOINTS.bookings.updateStatus(id), { status });
+            return response.data;
+        },
+        onSuccess: (data) => {
+            console.log('Status update success:', data);
+            queryClient.invalidateQueries(['doctor-bookings']);
+            queryClient.invalidateQueries(['dashboard-stats']);
+            toast.success('Appointment status updated!');
+        },
+        onError: (err) => {
+            console.error('Status update error:', err.response?.data, err.response?.status);
+            toast.error(err.response?.data?.error || err.response?.data?.detail || 'Failed to update status');
+        }
+    });
+
+    const handleStatusChange = (bookingId, newStatus) => {
+        updateStatus.mutate({ id: bookingId, status: newStatus });
+    };
+
+    const getStatusStyle = (status) => {
+        const styles = {
+            pending: { bg: '#fef3c7', color: '#92400e' },
+            accepted: { bg: '#dcfce7', color: '#166534' },
+            rejected: { bg: '#fee2e2', color: '#991b1b' },
+            completed: { bg: '#dbeafe', color: '#1e40af' },
+            cancelled: { bg: '#f1f5f9', color: '#475569' }
+        };
+        return styles[status] || styles.pending;
+    };
+
     if (isLoading) return <Loading />;
 
     return (
         <div className="card" style={{ padding: '0', overflow: 'hidden', borderRadius: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
             <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>Upcoming Appointments</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>Manage Appointments</h3>
                 <span style={{ fontSize: '0.875rem', color: '#64748b' }}>{bookings?.length || 0} Total</span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <tr>
-                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient</th>
-                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date & Time</th>
-                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Symptoms</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {bookings?.map(booking => (
-                        <tr key={booking.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
-                            <td style={{ padding: '1.25rem 1rem' }}>
-                                <div style={{ fontWeight: 600, color: '#1e293b' }}>{booking.p_name || booking.user_name || 'Patient'}</div>
-                            </td>
-                            <td style={{ padding: '1.25rem 1rem' }}>
-                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{booking.booking_date}</div>
-                                <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>{booking.appointment_time}</div>
-                            </td>
-                            <td style={{ padding: '1.25rem 1rem' }}>
-                                <span style={{
-                                    padding: '0.25rem 0.75rem',
-                                    borderRadius: '9999px',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 700,
-                                    backgroundColor: booking.status === 'accepted' ? '#dcfce7' : booking.status === 'cancelled' ? '#fee2e2' : '#fef3c7',
-                                    color: booking.status === 'accepted' ? '#166534' : booking.status === 'cancelled' ? '#991b1b' : '#92400e',
-                                }}>
-                                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                                </span>
-                            </td>
-                            <td style={{ padding: '1.25rem 1rem', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {booking.symptoms || '-'}
-                            </td>
-                        </tr>
-                    ))}
-                    {bookings?.length === 0 && (
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                    <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                            <td colSpan="4" style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📅</div>
-                                <p style={{ margin: 0 }}>No appointments found.</p>
-                            </td>
+                            <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient</th>
+                            <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date & Time</th>
+                            <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                            <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {bookings?.map(booking => {
+                            const statusStyle = getStatusStyle(booking.status);
+                            const isPending = booking.status === 'pending';
+                            const isAccepted = booking.status === 'accepted';
+                            const isFinal = ['completed', 'cancelled', 'rejected'].includes(booking.status);
+
+                            return (
+                                <tr key={booking.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
+                                    <td style={{ padding: '1.25rem 1rem' }}>
+                                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{booking.p_name || booking.user_name || 'Patient'}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>{booking.p_email}</div>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1rem' }}>
+                                        <div style={{ color: '#1e293b', fontWeight: 500 }}>{booking.booking_date}</div>
+                                        <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>{booking.appointment_time}</div>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1rem' }}>
+                                        <span style={{
+                                            padding: '0.35rem 0.85rem',
+                                            borderRadius: '9999px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 700,
+                                            backgroundColor: statusStyle.bg,
+                                            color: statusStyle.color,
+                                        }}>
+                                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1.25rem 1rem' }}>
+                                        {isFinal ? (
+                                            <span style={{ color: '#94a3b8', fontSize: '0.875rem', fontStyle: 'italic' }}>No actions</span>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {isPending && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleStatusChange(booking.id, 'accepted')}
+                                                            disabled={updateStatus.isPending}
+                                                            style={{
+                                                                padding: '0.4rem 0.8rem',
+                                                                backgroundColor: '#10b981',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '0.5rem',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 600,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.25rem'
+                                                            }}
+                                                        >
+                                                            ✓ Accept
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleStatusChange(booking.id, 'rejected')}
+                                                            disabled={updateStatus.isPending}
+                                                            style={{
+                                                                padding: '0.4rem 0.8rem',
+                                                                backgroundColor: '#ef4444',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '0.5rem',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 600,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.25rem'
+                                                            }}
+                                                        >
+                                                            ✕ Reject
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {isAccepted && (
+                                                    <button
+                                                        onClick={() => handleStatusChange(booking.id, 'completed')}
+                                                        disabled={updateStatus.isPending}
+                                                        style={{
+                                                            padding: '0.4rem 0.8rem',
+                                                            backgroundColor: '#3b82f6',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 600,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.25rem'
+                                                        }}
+                                                    >
+                                                        ✓ Mark Complete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {bookings?.length === 0 && (
+                            <tr>
+                                <td colSpan="4" style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📅</div>
+                                    <p style={{ margin: 0 }}>No appointments found.</p>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
@@ -251,6 +364,10 @@ const ScheduleManager = () => {
             toast.warning('Please select both start and end times');
             return;
         }
+        if (start >= end) {
+            toast.warning('End time must be after start time');
+            return;
+        }
         mutation.mutate({ day: dayId, start_time: start, end_time: end });
     };
 
@@ -285,20 +402,26 @@ const ScheduleManager = () => {
                                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: avail ? '#2563eb' : '#cbd5e1' }}></span>
                                 {day.name}
                             </div>
-                            <input
-                                type="time"
-                                defaultValue={startVal}
-                                id={`start-${day.id}`}
-                                className="form-input"
-                                style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
-                            />
-                            <input
-                                type="time"
-                                defaultValue={endVal}
-                                id={`end-${day.id}`}
-                                className="form-input"
-                                style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>From (24h)</label>
+                                <input
+                                    type="time"
+                                    defaultValue={startVal}
+                                    id={`start-${day.id}`}
+                                    className="form-input"
+                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>To (24h) - Use 18:00 for 6PM</label>
+                                <input
+                                    type="time"
+                                    defaultValue={endVal}
+                                    id={`end-${day.id}`}
+                                    className="form-input"
+                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
+                                />
+                            </div>
                             <button
                                 onClick={() => {
                                     const start = document.getElementById(`start-${day.id}`).value;
