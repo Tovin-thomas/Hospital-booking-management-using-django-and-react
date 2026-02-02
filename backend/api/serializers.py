@@ -82,9 +82,25 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
 
 
 class DoctorLeaveSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+    department_name = serializers.SerializerMethodField()
+    start_date = serializers.DateField(source='date', read_only=True)
+    end_date = serializers.DateField(source='date', read_only=True)
+    
     class Meta:
         model = DoctorLeave
-        fields = ['id', 'date', 'reason']
+        fields = ['id', 'doctor', 'doctor_name', 'department_name', 'date', 'start_date', 'end_date', 'reason']
+        extra_kwargs = {
+            'doctor': {'write_only': True}
+        }
+    
+    def get_doctor_name(self, obj):
+        return obj.doctor.doc_name if obj.doctor else None
+    
+    def get_department_name(self, obj):
+        if obj.doctor and obj.doctor.dep_name:
+            return obj.doctor.dep_name.dep_name
+        return None
 
 
 class DoctorSerializer(serializers.ModelSerializer):

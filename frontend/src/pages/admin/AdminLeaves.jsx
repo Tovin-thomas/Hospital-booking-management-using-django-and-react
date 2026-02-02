@@ -40,17 +40,18 @@ const AdminLeaves = () => {
     const filteredLeaves = leaves?.filter(leave => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const startDate = new Date(leave.start_date);
-        const endDate = new Date(leave.end_date);
+        // Use 'date' field (single date per leave)
+        const leaveDate = new Date(leave.date || leave.start_date);
 
         // Status filter
         let statusMatch = true;
         if (filterStatus === 'upcoming') {
-            statusMatch = startDate > today;
+            statusMatch = leaveDate > today;
         } else if (filterStatus === 'active') {
-            statusMatch = startDate <= today && endDate >= today;
+            // Active means today is the leave day
+            statusMatch = leaveDate.getTime() === today.getTime();
         } else if (filterStatus === 'past') {
-            statusMatch = endDate < today;
+            statusMatch = leaveDate < today;
         }
 
         // Search filter
@@ -65,16 +66,19 @@ const AdminLeaves = () => {
     const getLeaveStatus = (leave) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const startDate = new Date(leave.start_date);
-        const endDate = new Date(leave.end_date);
+        const leaveDate = new Date(leave.date || leave.start_date);
+        leaveDate.setHours(0, 0, 0, 0);
 
-        if (startDate > today) return { label: 'Upcoming', color: '#3b82f6', bg: '#dbeafe' };
-        if (endDate < today) return { label: 'Completed', color: '#64748b', bg: '#f1f5f9' };
-        return { label: 'Active', color: '#059669', bg: '#d1fae5' };
+        if (leaveDate.getTime() > today.getTime()) return { label: 'Upcoming', color: '#3b82f6', bg: '#dbeafe' };
+        if (leaveDate.getTime() < today.getTime()) return { label: 'Completed', color: '#64748b', bg: '#f1f5f9' };
+        return { label: 'On Leave Today', color: '#059669', bg: '#d1fae5' };
     };
 
     const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
+        if (!dateStr) return 'N/A';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleDateString('en-US', {
             weekday: 'short',
             year: 'numeric',
             month: 'short',
@@ -85,11 +89,17 @@ const AdminLeaves = () => {
     // Count stats
     const stats = {
         total: leaves?.length || 0,
-        upcoming: leaves?.filter(l => new Date(l.start_date) > new Date()).length || 0,
+        upcoming: leaves?.filter(l => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return new Date(l.date || l.start_date) > today;
+        }).length || 0,
         active: leaves?.filter(l => {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            return new Date(l.start_date) <= today && new Date(l.end_date) >= today;
+            const leaveDate = new Date(l.date || l.start_date);
+            leaveDate.setHours(0, 0, 0, 0);
+            return leaveDate.getTime() === today.getTime();
         }).length || 0,
     };
 
@@ -247,7 +257,7 @@ const AdminLeaves = () => {
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                                 <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Doctor</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Leave Period</th>
+                                <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Leave Date</th>
                                 <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Reason</th>
                                 <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Status</th>
                                 <th style={{ padding: '1rem', textAlign: 'right', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Actions</th>
@@ -285,10 +295,7 @@ const AdminLeaves = () => {
                                         </td>
                                         <td style={{ padding: '1rem' }}>
                                             <div style={{ fontWeight: 500, color: '#1e293b' }}>
-                                                {formatDate(leave.start_date)}
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                to {formatDate(leave.end_date)}
+                                                {formatDate(leave.date)}
                                             </div>
                                         </td>
                                         <td style={{ padding: '1rem', maxWidth: '250px' }}>
