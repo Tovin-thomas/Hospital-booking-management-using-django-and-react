@@ -44,6 +44,7 @@ const API_ENDPOINTS = {
     contacts: {
         create: '/contacts/',
         list: '/contacts/',
+        delete: (id) => `/contacts/${id}/`,
         markRead: (id) => `/contacts/${id}/mark_read/`,
     },
 

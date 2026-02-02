@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { formatDate } from '../../utils/formatters';
+import { toast } from 'react-toastify';
 
 const AdminContacts = () => {
+    const queryClient = useQueryClient();
     const [selectedMessage, setSelectedMessage] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
 
     const { data: messages, isLoading } = useQuery({
         queryKey: ['admin-contacts'],
@@ -17,6 +20,44 @@ const AdminContacts = () => {
             return response.data.results || response.data;
         },
     });
+
+    // Delete mutation
+    const deleteMutation = useMutation({
+        mutationFn: async (id) => {
+            await axios.delete(API_ENDPOINTS.contacts.delete(id));
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['admin-contacts']);
+            toast.success('Message deleted successfully');
+            setDeleteConfirm(null);
+            setSelectedMessage(null);
+        },
+        onError: () => {
+            toast.error('Failed to delete message');
+        }
+    });
+
+    // Mark as read mutation
+    const markReadMutation = useMutation({
+        mutationFn: async (id) => {
+            await axios.post(API_ENDPOINTS.contacts.markRead(id));
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['admin-contacts']);
+            toast.success('Message marked as read');
+        },
+        onError: () => {
+            toast.error('Failed to mark message as read');
+        }
+    });
+
+    const handleDelete = (id) => {
+        deleteMutation.mutate(id);
+    };
+
+    const handleMarkRead = (id) => {
+        markReadMutation.mutate(id);
+    };
 
     if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
 
@@ -196,8 +237,9 @@ const AdminContacts = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                // Mark as read API call
+                                                handleMarkRead(message.id);
                                             }}
+                                            disabled={markReadMutation.isPending}
                                             style={{
                                                 padding: '0.5rem 1rem',
                                                 backgroundColor: '#d1fae5',
@@ -222,6 +264,34 @@ const AdminContacts = () => {
                                             Mark Read
                                         </button>
                                     )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteConfirm(message.id);
+                                        }}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            backgroundColor: '#fee2e2',
+                                            color: '#dc2626',
+                                            border: 'none',
+                                            borderRadius: '0.5rem',
+                                            fontWeight: 600,
+                                            fontSize: '0.8125rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#dc2626';
+                                            e.currentTarget.style.color = 'white';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#fee2e2';
+                                            e.currentTarget.style.color = '#dc2626';
+                                        }}
+                                    >
+                                        <i className="fas fa-trash" style={{ marginRight: '0.375rem' }}></i>
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -324,6 +394,88 @@ const AdminContacts = () => {
                         <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#64748b' }}>
                             <i className="fas fa-clock" style={{ marginRight: '0.5rem' }}></i>
                             Received on {formatDate(selectedMessage.submitted_at)}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1001,
+                        padding: '2rem'
+                    }}
+                    onClick={() => setDeleteConfirm(null)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '1rem',
+                            padding: '2rem',
+                            maxWidth: '400px',
+                            width: '100%',
+                            textAlign: 'center'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fee2e2',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem'
+                        }}>
+                            <i className="fas fa-trash-alt" style={{ fontSize: '1.5rem', color: '#dc2626' }}></i>
+                        </div>
+                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
+                            Delete Message?
+                        </h3>
+                        <p style={{ margin: '0 0 1.5rem', color: '#64748b' }}>
+                            Are you sure you want to delete this message? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button
+                                onClick={() => setDeleteConfirm(null)}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#64748b',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleDelete(deleteConfirm)}
+                                disabled={deleteMutation.isPending}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: '#dc2626',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>
