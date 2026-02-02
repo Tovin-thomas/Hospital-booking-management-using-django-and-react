@@ -376,9 +376,13 @@ class ContactViewSet(viewsets.ModelViewSet):
         return [IsAdminUser()]
     
     def create(self, request, *args, **kwargs):
+        print(f"[DEBUG] Contact form received: {request.data}")  # Debug log
         serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print(f"[DEBUG] Contact form validation errors: {serializer.errors}")  # Debug log
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        print(f"[DEBUG] Contact saved successfully: {serializer.data}")  # Debug log
         return Response({
             'message': 'Thank you for contacting us! We will get back to you soon.',
             'contact': serializer.data

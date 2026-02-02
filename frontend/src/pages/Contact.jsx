@@ -23,12 +23,21 @@ const Contact = () => {
         e.preventDefault();
         setLoading(true);
 
+        console.log('Submitting contact form:', formData);  // Debug log
+
         try {
-            await axios.post(API_ENDPOINTS.contacts.create, formData);
+            const response = await axios.post(API_ENDPOINTS.contacts.create, formData);
+            console.log('Contact form response:', response.data);  // Debug log
             toast.success('Thank you for your message! We will get back to you soon.');
             setFormData({ name: '', email: '', subject: '', message: '' });
         } catch (error) {
-            toast.error('Failed to send message. Please try again.');
+            console.error('Contact form error:', error.response?.data || error.message);  // Debug log
+            const errorMessage = error.response?.data?.detail ||
+                error.response?.data?.message ||
+                (typeof error.response?.data === 'object' ?
+                    Object.values(error.response?.data).flat().join(', ') :
+                    'Failed to send message. Please try again.');
+            toast.error(errorMessage);
         }
 
         setLoading(false);
