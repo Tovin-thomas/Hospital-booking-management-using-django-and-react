@@ -147,40 +147,6 @@ const AdminLeaves = () => {
                         <i className="fas fa-sync-alt"></i>
                         Refresh
                     </button>
-                    <a
-                        href="/admin/doctors/doctorleave/add/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            padding: '0.875rem 1.75rem',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.75rem',
-                            fontWeight: 600,
-                            fontSize: '0.9375rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            textDecoration: 'none',
-                            boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#2563eb';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(59, 130, 246, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#3b82f6';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
-                        }}
-                    >
-                        <i className="fas fa-plus"></i>
-                        Add Leave
-                    </a>
                 </div>
             </div>
 
