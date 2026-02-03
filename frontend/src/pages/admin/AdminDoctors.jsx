@@ -182,20 +182,34 @@ const AdminDoctors = () => {
                                     </td>
                                     <td style={{ padding: '1.25rem 1.5rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{
-                                                width: '48px',
-                                                height: '48px',
-                                                borderRadius: '0.75rem',
-                                                backgroundColor: '#dbeafe',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '1.25rem',
-                                                fontWeight: 700,
-                                                color: '#3b82f6'
-                                            }}>
-                                                {doctor.doc_name.charAt(0)}
-                                            </div>
+                                            {doctor.doc_image_url ? (
+                                                <img
+                                                    src={doctor.doc_image_url}
+                                                    alt={doctor.doc_name}
+                                                    style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '0.75rem',
+                                                        objectFit: 'cover',
+                                                        border: '2px solid #e2e8f0'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div style={{
+                                                    width: '48px',
+                                                    height: '48px',
+                                                    borderRadius: '0.75rem',
+                                                    backgroundColor: '#dbeafe',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1.25rem',
+                                                    fontWeight: 700,
+                                                    color: '#3b82f6'
+                                                }}>
+                                                    {doctor.doc_name.charAt(0)}
+                                                </div>
+                                            )}
                                             <div>
                                                 <div style={{ fontWeight: 600, color: '#1e293b' }}>Dr. {doctor.doc_name}</div>
                                             </div>
@@ -313,25 +327,45 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
         doc_name: doctor?.doc_name || '',
         doc_spec: doctor?.doc_spec || '',
         department_id: doctor?.department_id || '',
+        doc_image: null,
     });
+    const [imagePreview, setImagePreview] = useState(doctor?.doc_image_url || null);
 
     const createOrUpdateDoctor = useMutation({
         mutationFn: async (data) => {
+            // Create FormData for multipart upload
+            const formDataToSend = new FormData();
+
+            // Add basic fields
+            formDataToSend.append('doc_name', data.doc_name);
+            formDataToSend.append('doc_spec', data.doc_spec);
+            formDataToSend.append('department_id', data.department_id);
+
+            // Add optional user fields
+            if (data.username) formDataToSend.append('username', data.username);
+            if (data.email) formDataToSend.append('email', data.email);
+            if (data.password) formDataToSend.append('password', data.password);
+
+            // Add image if provided
+            if (data.doc_image) {
+                formDataToSend.append('doc_image', data.doc_image);
+            }
+
             if (doctor) {
                 // UPDATE existing doctor
-                const response = await axios.put(API_ENDPOINTS.doctors.update(doctor.id), {
-                    doc_name: data.doc_name,
-                    doc_spec: data.doc_spec,
-                    department_id: data.department_id,
-                    // Send username if changed, email if provided, password if provided
-                    ...(data.username && { username: data.username }),
-                    ...(data.email && { email: data.email }),
-                    ...(data.password && { password: data.password }),
+                const response = await axios.put(API_ENDPOINTS.doctors.update(doctor.id), formDataToSend, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 });
                 return response.data;
             } else {
                 // CREATE new doctor
-                const response = await axios.post(API_ENDPOINTS.doctors.create, data);
+                const response = await axios.post(API_ENDPOINTS.doctors.create, formDataToSend, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
                 return response.data;
             }
         },
@@ -393,6 +427,32 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
             }
         },
     });
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB');
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                toast.error('Please upload a valid image file');
+                return;
+            }
+
+            setFormData({ ...formData, doc_image: file });
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -564,6 +624,103 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
                                         <option key={dept.id} value={dept.id}>{dept.dep_name}</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            {/* Profile Picture Upload */}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#475569' }}>
+                                    <i className="fas fa-camera" style={{ marginRight: '0.5rem', color: '#8b5cf6' }}></i>
+                                    Profile Picture
+                                </label>
+
+                                {/* Image Preview */}
+                                {imagePreview && (
+                                    <div style={{
+                                        marginBottom: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem'
+                                    }}>
+                                        <img
+                                            src={imagePreview}
+                                            alt="Doctor preview"
+                                            style={{
+                                                width: '100px',
+                                                height: '100px',
+                                                borderRadius: '0.75rem',
+                                                objectFit: 'cover',
+                                                border: '3px solid #e2e8f0'
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setImagePreview(null);
+                                                setFormData({ ...formData, doc_image: null });
+                                            }}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                backgroundColor: '#fee2e2',
+                                                color: '#dc2626',
+                                                border: 'none',
+                                                borderRadius: '0.5rem',
+                                                fontSize: '0.875rem',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <i className="fas fa-trash" style={{ marginRight: '0.5rem' }}></i>
+                                            Remove
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* File Input */}
+                                <div style={{
+                                    position: 'relative',
+                                    border: '2px dashed #cbd5e1',
+                                    borderRadius: '0.75rem',
+                                    padding: '1.5rem',
+                                    textAlign: 'center',
+                                    backgroundColor: '#f8fafc',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                        e.currentTarget.style.backgroundColor = '#eff6ff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                                    }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            opacity: 0,
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                    <i className="fas fa-cloud-upload-alt" style={{
+                                        fontSize: '2rem',
+                                        color: '#3b82f6',
+                                        marginBottom: '0.5rem',
+                                        display: 'block'
+                                    }}></i>
+                                    <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
+                                        Click to upload or drag and drop
+                                    </p>
+                                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
+                                        PNG, JPG, GIF up to 5MB
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -166,14 +166,24 @@ class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='dep_name.dep_name', read_only=True)
     department_id_read = serializers.IntegerField(source='dep_name.id', read_only=True)
     current_status = serializers.ReadOnlyField()
+    doc_image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Doctors
         fields = [
             'id', 'doc_name', 'doc_spec', 'department_id', 'department_name',
-            'department_id_read', 'current_status', 'username', 'password', 'email'
+            'department_id_read', 'current_status', 'doc_image', 'doc_image_url',
+            'username', 'password', 'email'
         ]
-        read_only_fields = ['id', 'current_status']
+        read_only_fields = ['id', 'current_status', 'doc_image_url']
+    
+    def get_doc_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.doc_image and hasattr(obj.doc_image, 'url'):
+            if request:
+                return request.build_absolute_uri(obj.doc_image.url)
+            return obj.doc_image.url
+        return None
     
     def validate(self, attrs):
         # For creation, require user credentials
@@ -251,6 +261,11 @@ class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
         instance.doc_name = validated_data.get('doc_name', instance.doc_name)
         instance.doc_spec = validated_data.get('doc_spec', instance.doc_spec)
         instance.dep_name = validated_data.get('dep_name', instance.dep_name)
+        
+        # Update image if provided
+        if 'doc_image' in validated_data:
+            instance.doc_image = validated_data.get('doc_image')
+        
         instance.save()
         
         # If doctor doesn't have a user account and credentials are provided, create one
