@@ -504,16 +504,18 @@ class DoctorAvailabilityViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        if Doctors.objects.filter(user=user).exists():
-            serializer.save(doctor=user.doctors)
-        else:
+        try:
+            doctor = Doctors.objects.get(user=user)
+            serializer.save(doctor=doctor)
+        except Doctors.DoesNotExist:
             serializer.save()
 
     def perform_update(self, serializer):
         user = self.request.user
-        if Doctors.objects.filter(user=user).exists():
-            serializer.save(doctor=user.doctors)
-        else:
+        try:
+            doctor = Doctors.objects.get(user=user)
+            serializer.save(doctor=doctor)
+        except Doctors.DoesNotExist:
             serializer.save()
 
 
@@ -532,9 +534,12 @@ class DoctorLeaveViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        if Doctors.objects.filter(user=user).exists():
-            serializer.save(doctor=user.doctors)
-        else:
+        # For doctors creating their own leave
+        try:
+            doctor = Doctors.objects.get(user=user)
+            serializer.save(doctor=doctor)
+        except Doctors.DoesNotExist:
+            # For admins, the doctor must be provided in the request data
             serializer.save()
 
 

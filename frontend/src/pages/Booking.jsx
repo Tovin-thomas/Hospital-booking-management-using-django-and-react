@@ -187,7 +187,39 @@ const Booking = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <p style={{ color: 'var(--color-error)' }}>{slotsData?.reason}</p>
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        backgroundColor: '#fef2f2',
+                                        border: '2px solid #fecaca',
+                                        borderRadius: '0.75rem',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '1rem'
+                                    }}>
+                                        <div style={{
+                                            width: '48px',
+                                            height: '48px',
+                                            backgroundColor: '#fee2e2',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <i className="fas fa-calendar-times" style={{ fontSize: '1.25rem', color: '#dc2626' }}></i>
+                                        </div>
+                                        <div>
+                                            <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem', fontWeight: 600 }}>
+                                                Doctor Unavailable
+                                            </h4>
+                                            <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.9375rem' }}>
+                                                {slotsData?.reason}
+                                            </p>
+                                            <p style={{ margin: '0.75rem 0 0', color: '#991b1b', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                Please select a different date to see available time slots.
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}

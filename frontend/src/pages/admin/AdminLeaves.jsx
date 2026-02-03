@@ -105,6 +105,85 @@ const AdminLeaves = () => {
 
     return (
         <AdminLayout>
+            {/* Header with Add Leave Button */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '2rem'
+            }}>
+                <div>
+                    <h2 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
+                        Doctor Leaves
+                    </h2>
+                    <p style={{ margin: '0.5rem 0 0', color: '#64748b' }}>
+                        Manage doctor leave schedules
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                        onClick={() => queryClient.invalidateQueries(['admin-leaves'])}
+                        style={{
+                            padding: '0.875rem 1.25rem',
+                            backgroundColor: '#f1f5f9',
+                            color: '#475569',
+                            border: 'none',
+                            borderRadius: '0.75rem',
+                            fontWeight: 600,
+                            fontSize: '0.9375rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#e2e8f0';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f1f5f9';
+                        }}
+                    >
+                        <i className="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                    <a
+                        href="/admin/doctors/doctorleave/add/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            padding: '0.875rem 1.75rem',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.75rem',
+                            fontWeight: 600,
+                            fontSize: '0.9375rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            textDecoration: 'none',
+                            boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#2563eb';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#3b82f6';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                        }}
+                    >
+                        <i className="fas fa-plus"></i>
+                        Add Leave
+                    </a>
+                </div>
+            </div>
+
             {/* Stats Cards */}
             <div style={{
                 display: 'grid',

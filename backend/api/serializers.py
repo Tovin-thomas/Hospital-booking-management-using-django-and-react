@@ -78,7 +78,10 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DoctorAvailability
-        fields = ['id', 'day', 'day_display', 'start_time', 'end_time']
+        fields = ['id', 'doctor', 'day', 'day_display', 'start_time', 'end_time']
+        extra_kwargs = {
+            'doctor': {'write_only': True, 'required': False}
+        }
 
 
 class DoctorLeaveSerializer(serializers.ModelSerializer):
@@ -91,7 +94,7 @@ class DoctorLeaveSerializer(serializers.ModelSerializer):
         model = DoctorLeave
         fields = ['id', 'doctor', 'doctor_name', 'department_name', 'date', 'start_date', 'end_date', 'reason']
         extra_kwargs = {
-            'doctor': {'write_only': True}
+            'doctor': {'write_only': True, 'required': False}
         }
     
     def get_doctor_name(self, obj):

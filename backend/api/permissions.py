@@ -43,11 +43,19 @@ class IsDoctorOrAdmin(permissions.BasePermission):
         if request.user.is_superuser or request.user.is_staff:
             return True
         
+        # Try to get doctor for current user
+        try:
+            doctor = Doctors.objects.get(user=request.user)
+        except Doctors.DoesNotExist:
+            return False
+        
         # For bookings, check if user is the assigned doctor
         if hasattr(obj, 'doc_name'):
-            doctor = Doctors.objects.filter(user=request.user).first()
-            if doctor:
-                return obj.doc_name.id == doctor.id
+            return obj.doc_name.id == doctor.id
+        
+        # For leaves and availability, check if user is the doctor
+        if hasattr(obj, 'doctor'):
+            return obj.doctor.id == doctor.id
         
         return False
 
