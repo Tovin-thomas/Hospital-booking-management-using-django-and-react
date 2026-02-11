@@ -16,6 +16,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Contact from './pages/Contact';
+import AdminSetup from './pages/AdminSetup';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -49,6 +50,7 @@ function App() {
                             <Register />
                         </PublicRoute>
                     } />
+                    <Route path="admin-setup" element={<AdminSetup />} />
 
                     {/* Protected Patient Routes */}
                     <Route path="booking/:doctorId" element={
