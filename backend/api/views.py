@@ -4,6 +4,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.hashers import make_password
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+import requests
 from datetime import datetime, timedelta, date
 
 from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave
@@ -569,3 +574,63 @@ def api_root(request):
         },
         'documentation': 'Visit /api/ in browser mode for browsable API'
     })
+
+# ===========================
+# Google Auth View
+# ===========================
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify token with Google
+        try:
+            # Using tokeninfo endpoint to verify ID token
+            response = requests.get(f'https://oauth2.googleapis.com/tokeninfo?id_token={token}')
+            
+            if response.status_code != 200:
+                return Response({'error': 'Invalid Google token'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            google_data = response.json()
+            email = google_data.get('email')
+            
+            if not email:
+                return Response({'error': 'Email not found in Google token'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if user exists
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # Create user
+                username = email.split('@')[0]
+                # Ensure unique username
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    first_name=google_data.get('given_name', ''),
+                    last_name=google_data.get('family_name', ''),
+                    password=make_password(BaseUserManager().make_random_password())
+                )
+                # UserProfile is created by signal
+
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

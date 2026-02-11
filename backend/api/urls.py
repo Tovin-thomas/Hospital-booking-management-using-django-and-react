@@ -7,7 +7,8 @@ from .views import (
     DepartmentViewSet, DoctorViewSet,
     BookingViewSet, ContactViewSet,
     dashboard_stats, api_root,
-    DoctorAvailabilityViewSet, DoctorLeaveViewSet
+    DoctorAvailabilityViewSet, DoctorLeaveViewSet,
+    GoogleLoginView
 )
 
 # Create router and register viewsets
@@ -29,6 +30,7 @@ urlpatterns = [
     path('auth/login/', TokenObtainPairView.as_view(), name='auth-login'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='auth-refresh'),
     path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
+    path('auth/google/', GoogleLoginView.as_view(), name='auth-google'),
     
     # Dashboard
     path('dashboard/stats/', dashboard_stats, name='dashboard-stats'),

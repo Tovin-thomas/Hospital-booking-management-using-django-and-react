@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login } = useAuth();
+    const { login, googleLogin } = useAuth();
     const [formLoading, setFormLoading] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
@@ -104,6 +105,32 @@ const Login = () => {
                             {formLoading ? 'Logging in...' : 'Login'}
                         </button>
                     </form>
+
+                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                const result = await googleLogin(credentialResponse.credential);
+                                if (result.success) {
+                                    // Handle redirection (same logic as normal login)
+                                    // Reuse handleSubmit logic or duplicate redirection logic here?
+                                    // Let's duplicate quickly or extract function.
+                                    // Duplicating for simplicity now.
+                                    const user = result.user;
+                                    const isSuperUser = user?.is_superuser;
+                                    const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
+                                    let redirectPath = '/';
+                                    if (isSuperUser) redirectPath = '/admin/dashboard';
+                                    else if (isDoctor) redirectPath = '/dashboard';
+                                    else if (from !== '/' && from !== '/login' && from !== '/register') redirectPath = from;
+                                    navigate(redirectPath, { replace: true });
+                                }
+                            }}
+                            onError={() => {
+                                console.log('Login Failed');
+                            }}
+                            useOneTap
+                        />
+                    </div>
 
                     <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--color-gray-600)' }}>
                         Don't have an account?{' '}

@@ -6,6 +6,7 @@ const API_ENDPOINTS = {
         login: '/auth/login/',
         refresh: '/auth/refresh/',
         profile: '/auth/profile/',
+        google: '/auth/google/',
     },
 
     // Departments

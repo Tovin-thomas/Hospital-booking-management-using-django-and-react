@@ -101,6 +101,30 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const googleLogin = async (token) => {
+        try {
+            const response = await axios.post(API_ENDPOINTS.auth.google, { token });
+            const { access, refresh, user } = response.data;
+
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh);
+
+            // If backend returns user, set it. Otherwise load it.
+            if (user) {
+                setUser(user);
+            } else {
+                await loadUser();
+            }
+
+            toast.success('Login successful!');
+            return { success: true, user: user || await loadUser() };
+        } catch (error) {
+            const message = error.response?.data?.error || 'Google Login failed';
+            toast.error(message);
+            return { success: false, error: message };
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -139,6 +163,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        googleLogin,
         logout,
         updateProfile,
         isAuthenticated: !!user,
