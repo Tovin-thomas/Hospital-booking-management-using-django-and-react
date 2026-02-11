@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_BASE_URL } from '../api/endpoints';
+import axios from '../api/axios';
 
 const AdminSetup = () => {
     const navigate = useNavigate();
@@ -46,7 +45,7 @@ const AdminSetup = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/auth/setup-admin/`, {
+            const response = await axios.post('/auth/setup-admin/', {
                 setup_token: formData.setup_token,
                 username: formData.username,
                 email: formData.email,
