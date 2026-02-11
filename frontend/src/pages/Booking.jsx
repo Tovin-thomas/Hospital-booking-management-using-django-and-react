@@ -24,13 +24,13 @@ const Booking = () => {
     });
 
     // Fetch available slots when date is selected
-    const { data: slotsData, isLoading: slotsLoading } = useQuery({
+    const { data: slotsData, isLoading: slotsLoading, error: slotsError } = useQuery({
         queryKey: ['slots', doctorId, selectedDate],
         queryFn: async () => {
             const response = await axios.get(API_ENDPOINTS.doctors.availableSlots(doctorId, selectedDate));
             return response.data;
         },
-        enabled: !!selectedDate,
+        enabled: !!selectedDate && selectedDate.length === 10,
     });
 
     // Create booking mutation
@@ -112,78 +112,84 @@ const Booking = () => {
                                 <label className="form-label">Appointment Time *</label>
                                 {slotsLoading ? (
                                     <Loading size="sm" text="Loading available slots..." />
-                                ) : slotsData?.available ? (
-                                    <div>
-                                        {slotsData.working_hours && (
-                                            <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '1rem' }}>
-                                                Working hours: {slotsData.working_hours.start} - {slotsData.working_hours.end}
-                                            </p>
-                                        )}
-                                        {slotsData.slots && slotsData.slots.length > 0 ? (
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                                                gap: '0.5rem',
-                                            }}>
-                                                {slotsData.slots.map(slot => (
-                                                    <button
-                                                        key={slot.time}
-                                                        type="button"
-                                                        onClick={() => setSelectedTime(slot.time)}
-                                                        disabled={!slot.available}
-                                                        className={`btn btn-sm ${selectedTime === slot.time ? 'btn-primary' :
-                                                            slot.available ? 'btn-outline' : 'btn-secondary'
-                                                            }`}
-                                                        style={{
-                                                            opacity: slot.available ? 1 : 0.5,
-                                                            cursor: slot.available ? 'pointer' : 'not-allowed',
-                                                        }}
-                                                    >
-                                                        {slot.time}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: 'var(--color-gray-600)' }}>
-                                                All slots are booked. Please select another date.
-                                            </p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div style={{
-                                        padding: '1.5rem',
-                                        backgroundColor: '#fef2f2',
-                                        border: '2px solid #fecaca',
-                                        borderRadius: '0.75rem',
-                                        display: 'flex',
-                                        alignItems: 'flex-start',
-                                        gap: '1rem'
-                                    }}>
-                                        <div style={{
-                                            width: '48px',
-                                            height: '48px',
-                                            backgroundColor: '#fee2e2',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0
-                                        }}>
-                                            <i className="fas fa-calendar-times" style={{ fontSize: '1.25rem', color: '#dc2626' }}></i>
-                                        </div>
+                                ) : slotsError ? (
+                                    <p style={{ color: 'var(--color-danger)' }}>
+                                        Invalid date or error fetching slots.
+                                    </p>
+                                ) : slotsData ? (
+                                    slotsData.available ? (
                                         <div>
-                                            <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem', fontWeight: 600 }}>
-                                                Doctor Unavailable
-                                            </h4>
-                                            <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.9375rem' }}>
-                                                {slotsData?.reason}
-                                            </p>
-                                            <p style={{ margin: '0.75rem 0 0', color: '#991b1b', fontSize: '0.875rem', fontStyle: 'italic' }}>
-                                                Please select a different date to see available time slots.
-                                            </p>
+                                            {slotsData.working_hours && (
+                                                <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '1rem' }}>
+                                                    Working hours: {slotsData.working_hours.start} - {slotsData.working_hours.end}
+                                                </p>
+                                            )}
+                                            {slotsData.slots && slotsData.slots.length > 0 ? (
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                                                    gap: '0.5rem',
+                                                }}>
+                                                    {slotsData.slots.map(slot => (
+                                                        <button
+                                                            key={slot.time}
+                                                            type="button"
+                                                            onClick={() => setSelectedTime(slot.time)}
+                                                            disabled={!slot.available}
+                                                            className={`btn btn-sm ${selectedTime === slot.time ? 'btn-primary' :
+                                                                slot.available ? 'btn-outline' : 'btn-secondary'
+                                                                }`}
+                                                            style={{
+                                                                opacity: slot.available ? 1 : 0.5,
+                                                                cursor: slot.available ? 'pointer' : 'not-allowed',
+                                                            }}
+                                                        >
+                                                            {slot.time}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: 'var(--color-gray-600)' }}>
+                                                    All slots are booked. Please select another date.
+                                                </p>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div style={{
+                                            padding: '1.5rem',
+                                            backgroundColor: '#fef2f2',
+                                            border: '2px solid #fecaca',
+                                            borderRadius: '0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '1rem'
+                                        }}>
+                                            <div style={{
+                                                width: '48px',
+                                                height: '48px',
+                                                backgroundColor: '#fee2e2',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <i className="fas fa-calendar-times" style={{ fontSize: '1.25rem', color: '#dc2626' }}></i>
+                                            </div>
+                                            <div>
+                                                <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem', fontWeight: 600 }}>
+                                                    Doctor Unavailable
+                                                </h4>
+                                                <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.9375rem' }}>
+                                                    {slotsData?.reason}
+                                                </p>
+                                                <p style={{ margin: '0.75rem 0 0', color: '#991b1b', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                    Please select a different date to see available time slots.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
+                                ) : null}
                             </div>
                         )}
 
