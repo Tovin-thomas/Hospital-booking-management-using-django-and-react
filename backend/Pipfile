@@ -13,6 +13,11 @@ django-cors-headers = "*"
 django-filter = "*"
 pillow = "*"
 requests = "*"
+gunicorn = "*"
+whitenoise = "*"
+psycopg2-binary = "*"
+dj-database-url = "*"
+python-decouple = "*"
 
 [dev-packages]
 
