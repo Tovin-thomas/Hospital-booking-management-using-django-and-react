@@ -220,10 +220,12 @@ class DoctorViewSet(viewsets.ModelViewSet):
             # If 20 min slot pushes past end_time, we might exclude it depending on rules.
             # Assuming standard logic: start of slot < end_time
             
-            slots.append({
-                'time': slot_time.strftime('%H:%M'),
-                'available': slot_time not in booked_times
-            })
+            # Only add available slots
+            if slot_time not in booked_times:
+                slots.append({
+                    'time': slot_time.strftime('%H:%M'),
+                    'available': True
+                })
             
             current_time += timedelta(minutes=20)
         
