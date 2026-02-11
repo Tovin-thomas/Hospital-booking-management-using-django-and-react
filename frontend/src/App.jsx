@@ -50,7 +50,6 @@ function App() {
                             <Register />
                         </PublicRoute>
                     } />
-                    <Route path="admin-setup" element={<AdminSetup />} />
 
                     {/* Protected Patient Routes */}
                     <Route path="booking/:doctorId" element={
@@ -64,6 +63,9 @@ function App() {
                         </ProtectedRoute>
                     } />
                 </Route>
+
+                {/* Admin Setup - Standalone (No Layout) */}
+                <Route path="/admin-setup" element={<AdminSetup />} />
 
                 {/* Doctor Dashboard with DoctorLayout (separate from main Layout) */}
                 <Route path="/dashboard" element={
