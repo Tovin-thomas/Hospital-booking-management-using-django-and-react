@@ -13,9 +13,9 @@ class Command(BaseCommand):
             return
 
         # Get credentials from environment variables or use defaults
-        username = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
-        email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
-        password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'admin123')
+        username = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'tov')
+        email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'tov@hospital.com')
+        password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', '100')
 
         # Create superuser
         try:
