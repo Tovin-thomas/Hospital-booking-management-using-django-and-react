@@ -341,10 +341,8 @@ class BookingSerializer(serializers.ModelSerializer):
         
         # Check if doctor is on leave
         if doctor.leaves.filter(date=booking_date).exists():
-            leave = doctor.leaves.get(date=booking_date)
-            reason_msg = f" Reason: {leave.reason}" if leave.reason else ""
             raise serializers.ValidationError({
-                'booking_date': f'Doctor is on leave on this date.{reason_msg}'
+                'booking_date': 'Doctor is on leave on this date.'
             })
         
         # Check doctor availability for the day

@@ -9,13 +9,37 @@ import Loading from '../components/common/Loading';
 const Doctors = () => {
     const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
 
-    // Fetch doctors
+    // Debounce search term to avoid too many API calls
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Fetch doctors with backend filtering
     const { data: doctors, isLoading: doctorsLoading } = useQuery({
-        queryKey: ['doctors'],
+        queryKey: ['doctors', debouncedSearchTerm, selectedDepartment],
         queryFn: async () => {
-            const response = await axios.get(API_ENDPOINTS.doctors.list);
+            // Build query parameters for backend filtering
+            const params = new URLSearchParams();
+
+            // Add search filter (backend will search in doc_name and doc_spec)
+            if (debouncedSearchTerm) {
+                params.append('search', debouncedSearchTerm);
+            }
+
+            // Add department filter (backend filterset_fields includes dep_name)
+            if (selectedDepartment) {
+                params.append('dep_name', selectedDepartment);
+            }
+
+            const url = `${API_ENDPOINTS.doctors.list}${params.toString() ? '?' + params.toString() : ''}`;
+            const response = await axios.get(url);
             return response.data.results || response.data;
         },
     });
@@ -37,13 +61,9 @@ const Doctors = () => {
         }
     }, [searchParams]);
 
-    // Filter doctors
-    const filteredDoctors = doctors?.filter(doctor => {
-        const matchesSearch = doctor.doc_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doctor.doc_spec.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesDepartment = !selectedDepartment || doctor.department_id === parseInt(selectedDepartment);
-        return matchesSearch && matchesDepartment;
-    });
+    // No need for frontend filtering anymore - backend handles it!
+    // The 'doctors' data is already filtered by the API based on our query parameters
+    const filteredDoctors = doctors || [];
 
     const getSelectedDeptName = () => {
         if (!selectedDepartment) return null;

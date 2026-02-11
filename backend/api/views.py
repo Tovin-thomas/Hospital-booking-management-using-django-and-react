@@ -184,7 +184,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
         if leave:
             return Response({
                 'available': False,
-                'reason': f'Doctor is on leave. {leave.reason}' if leave.reason else 'Doctor is on leave',
+                'reason': 'Doctor is on leave',
                 'slots': []
             })
         
