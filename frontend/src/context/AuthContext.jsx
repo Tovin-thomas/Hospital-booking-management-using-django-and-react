@@ -13,12 +13,12 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                // Check if token is not expired
-                if (decoded.exp * 1000 > Date.now()) {
-                    // Return a temporary user object to maintain auth state
-                    // Full profile will be loaded in useEffect
-                    return { id: decoded.user_id, isTemporary: true };
-                }
+                // Check if token is not expired - RELAXED for clock skew
+                // if (decoded.exp * 1000 > Date.now()) {
+                // Return a temporary user object to maintain auth state
+                // Full profile will be loaded in useEffect
+                return { id: decoded.user_id, isTemporary: true };
+                // }
             } catch (error) {
                 console.error('Error decoding token:', error);
             }
@@ -38,20 +38,29 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             try {
                 // Decode token to get user info
-                const decoded = jwtDecode(token);
+                // const decoded = jwtDecode(token);
 
-                // Check if token is expired
-                if (decoded.exp * 1000 < Date.now()) {
-                    // Token expired, try to refresh
-                    await refreshToken();
-                } else {
-                    // Load full user profile
-                    const response = await axios.get(API_ENDPOINTS.auth.profile);
-                    setUser(response.data);
-                }
+                // RELAXED CHECK: We rely on the API to return 401 if token is expired.
+                // This handles cases where client clock (e.g. 2026) is far ahead of server (2025),
+                // which would otherwise cause an infinite refresh loop.
+
+                // if (decoded.exp * 1000 < Date.now()) {
+                //     // Token expired, try to refresh
+                //     await refreshToken();
+                // } else {
+                // Load full user profile
+                const response = await axios.get(API_ENDPOINTS.auth.profile);
+                setUser(response.data);
+                // }
             } catch (error) {
                 console.error('Error loading user:', error);
-                logout();
+                // Only logout if it's strictly an auth error (handled by interceptor usually, but here for safety)
+                // If the error was 401, the interceptor would have tried to refresh already.
+                // If it failed after refresh, we might need to logout.
+                if (error.response?.status === 401) {
+                    // Interceptor handles retry, if it bubbles up here it means refresh failed
+                    logout();
+                }
             }
         }
 
