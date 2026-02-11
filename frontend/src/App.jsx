@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Layout from './components/layout/Layout';
 import DoctorLayout from './components/layout/DoctorLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import PublicRoute from './components/common/PublicRoute';
 
 // Public Pages
 import Home from './pages/Home';
@@ -36,8 +37,18 @@ function App() {
                     <Route path="doctors" element={<Doctors />} />
                     <Route path="departments" element={<Departments />} />
                     <Route path="contact" element={<Contact />} />
-                    <Route path="login" element={<Login />} />
-                    <Route path="register" element={<Register />} />
+
+                    {/* Auth Routes - Redirect to dashboard if already logged in */}
+                    <Route path="login" element={
+                        <PublicRoute>
+                            <Login />
+                        </PublicRoute>
+                    } />
+                    <Route path="register" element={
+                        <PublicRoute>
+                            <Register />
+                        </PublicRoute>
+                    } />
 
                     {/* Protected Patient Routes */}
                     <Route path="booking/:doctorId" element={

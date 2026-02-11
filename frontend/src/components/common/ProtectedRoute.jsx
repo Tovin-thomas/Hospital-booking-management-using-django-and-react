@@ -7,11 +7,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireDoctor = false 
     const { isAuthenticated, loading, user } = useAuth();
     const location = useLocation();
 
+    // Show loading while checking authentication
+    // This prevents the flash of redirect during token validation
     if (loading) {
         return <Loading text="Checking authentication..." />;
     }
 
     // Not logged in - redirect to login
+    // Only redirect if we're sure the user is not authenticated (not loading)
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }

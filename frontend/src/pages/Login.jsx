@@ -6,7 +6,7 @@ const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { login } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const [formLoading, setFormLoading] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -23,11 +23,11 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        setFormLoading(true);
 
         const result = await login(formData);
 
-        setLoading(false);
+        setFormLoading(false);
 
         if (result.success) {
             // Redirect based on user role:
@@ -99,9 +99,9 @@ const Login = () => {
                             type="submit"
                             className="btn btn-primary"
                             style={{ width: '100%' }}
-                            disabled={loading}
+                            disabled={formLoading}
                         >
-                            {loading ? 'Logging in...' : 'Login'}
+                            {formLoading ? 'Logging in...' : 'Login'}
                         </button>
                     </form>
 

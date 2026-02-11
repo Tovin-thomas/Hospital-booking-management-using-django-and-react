@@ -7,7 +7,24 @@ import { toast } from 'react-toastify';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    // Initialize user from localStorage to prevent race conditions
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                // Check if token is not expired
+                if (decoded.exp * 1000 > Date.now()) {
+                    // Return a temporary user object to maintain auth state
+                    // Full profile will be loaded in useEffect
+                    return { id: decoded.user_id, isTemporary: true };
+                }
+            } catch (error) {
+                console.error('Error decoding token:', error);
+            }
+        }
+        return null;
+    });
     const [loading, setLoading] = useState(true);
 
     // Load user from token on mount
