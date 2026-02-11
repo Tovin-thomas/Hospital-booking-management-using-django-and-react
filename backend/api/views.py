@@ -614,12 +614,16 @@ class GoogleLoginView(APIView):
                     username = f"{base_username}{counter}"
                     counter += 1
                 
+                # Generate random password for Google OAuth users
+                from django.utils.crypto import get_random_string
+                random_password = get_random_string(length=32)
+                
                 user = User.objects.create(
                     username=username,
                     email=email,
                     first_name=google_data.get('given_name', ''),
                     last_name=google_data.get('family_name', ''),
-                    password=make_password(BaseUserManager().make_random_password())
+                    password=make_password(random_password)
                 )
                 # UserProfile is created by signal
 
