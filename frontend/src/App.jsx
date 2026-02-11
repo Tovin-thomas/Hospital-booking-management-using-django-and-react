@@ -16,7 +16,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Contact from './pages/Contact';
-import AdminSetup from './pages/AdminSetup';
+import AdminLogin from './pages/AdminLogin';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -64,8 +64,8 @@ function App() {
                     } />
                 </Route>
 
-                {/* Admin Setup - Standalone (No Layout) */}
-                <Route path="/admin-setup" element={<AdminSetup />} />
+                {/* Admin Login - Standalone (No Layout) */}
+                <Route path="/admin-login" element={<AdminLogin />} />
 
                 {/* Doctor Dashboard with DoctorLayout (separate from main Layout) */}
                 <Route path="/dashboard" element={
