@@ -10,7 +10,6 @@ from .views import (
     DoctorAvailabilityViewSet, DoctorLeaveViewSet,
     GoogleLoginView
 )
-from .admin_setup import setup_admin
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -32,7 +31,6 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='auth-refresh'),
     path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
     path('auth/google/', GoogleLoginView.as_view(), name='auth-google'),
-    path('auth/setup-admin/', setup_admin, name='setup-admin'),
     
     # Dashboard
     path('dashboard/stats/', dashboard_stats, name='dashboard-stats'),
