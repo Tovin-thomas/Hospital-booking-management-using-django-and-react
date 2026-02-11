@@ -13,6 +13,7 @@ const Register = () => {
         password2: '',
         first_name: '',
         last_name: '',
+        phone_number: '',
     });
 
     const handleChange = (e) => {
@@ -110,6 +111,19 @@ const Register = () => {
                                 onChange={handleChange}
                                 required
                                 placeholder="your.email@example.com"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Phone Number</label>
+                            <input
+                                type="tel"
+                                name="phone_number"
+                                className="form-input"
+                                value={formData.phone_number}
+                                onChange={handleChange}
+                                pattern="[0-9]{10}"
+                                placeholder="10 digit phone number"
                             />
                         </div>
 

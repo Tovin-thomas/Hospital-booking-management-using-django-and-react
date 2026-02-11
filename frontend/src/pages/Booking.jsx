@@ -13,11 +13,6 @@ const Booking = () => {
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
-    const [formData, setFormData] = useState({
-        p_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
-        p_phone: '',
-        p_email: user?.email || '',
-    });
 
     // Fetch doctor details
     const { data: doctor, isLoading: doctorLoading } = useQuery({
@@ -68,7 +63,6 @@ const Booking = () => {
             doctor_id: parseInt(doctorId),
             booking_date: selectedDate,
             appointment_time: selectedTime,
-            ...formData,
         });
     };
 
@@ -89,41 +83,10 @@ const Booking = () => {
                 {/* Booking Form */}
                 <div className="card">
                     <form onSubmit={handleSubmit}>
-                        <h3 style={{ marginBottom: '1.5rem' }}>Patient Information</h3>
-
-                        <div className="form-group">
-                            <label className="form-label">Patient Name *</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={formData.p_name}
-                                onChange={(e) => setFormData({ ...formData, p_name: e.target.value })}
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">Phone Number *</label>
-                            <input
-                                type="tel"
-                                className="form-input"
-                                value={formData.p_phone}
-                                onChange={(e) => setFormData({ ...formData, p_phone: e.target.value })}
-                                required
-                                pattern="[0-9]{10}"
-                                placeholder="10 digits"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">Email *</label>
-                            <input
-                                type="email"
-                                className="form-input"
-                                value={formData.p_email}
-                                onChange={(e) => setFormData({ ...formData, p_email: e.target.value })}
-                                required
-                            />
+                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <p style={{ color: 'var(--color-gray-600)', fontSize: '0.975rem' }}>
+                                Your contact details (Name, Email, Phone) will be automatically filled from your profile.
+                            </p>
                         </div>
 
                         <h3 style={{ marginTop: '2rem', marginBottom: '1.5rem' }}>Select Date & Time</h3>

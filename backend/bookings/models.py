@@ -12,7 +12,7 @@ class Booking(models.Model):
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='bookings')
     p_name = models.CharField(max_length=255)
-    p_phone = models.CharField(max_length=10)
+    p_phone = models.CharField(max_length=10, blank=True)
     p_email = models.EmailField()
     doc_name = models.ForeignKey(Doctors, on_delete=models.CASCADE)
     booking_date = models.DateField()

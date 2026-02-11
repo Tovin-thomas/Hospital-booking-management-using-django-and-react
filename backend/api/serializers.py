@@ -32,7 +32,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name']
+    phone_number = serializers.CharField(write_only=True, required=False, max_length=15)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'phone_number']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -49,8 +53,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self, validated_data):
+        phone_number = validated_data.pop('phone_number', None)
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
+        
+        # Save phone number to profile if provided
+        if phone_number:
+            # Profile created by signal
+            if hasattr(user, 'profile'):
+                user.profile.phone_number = phone_number
+                user.profile.save()
+            else:
+                # Fallback if signal didn't run
+                from core.models import UserProfile
+                UserProfile.objects.create(user=user, phone_number=phone_number)
+        
         return user
 
 
@@ -321,6 +338,11 @@ class BookingSerializer(serializers.ModelSerializer):
             'booked_on', 'user_name'
         ]
         read_only_fields = ['id', 'user', 'booked_on', 'status']
+        extra_kwargs = {
+            'p_name': {'required': False},
+            'p_phone': {'required': False},
+            'p_email': {'required': False}
+        }
     
     def validate(self, attrs):
         booking_date = attrs.get('booking_date')
@@ -391,7 +413,31 @@ class BookingSerializer(serializers.ModelSerializer):
         # Automatically assign the authenticated user
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            validated_data['user'] = request.user
+            user = request.user
+            validated_data['user'] = user
+            
+            # Auto-populate patient data from user profile if not provided
+            if not validated_data.get('p_name'):
+                # Construct full name from first_name and last_name
+                full_name = f"{user.first_name} {user.last_name}".strip()
+                validated_data['p_name'] = full_name if full_name else user.username
+            
+            if not validated_data.get('p_email'):
+                validated_data['p_email'] = user.email or ''
+            
+            if not validated_data.get('p_phone'):
+                # Try to get phone from user profile if it exists
+                # For now, we'll use a placeholder since the User model doesn't have phone
+                # In a real app, you'd extend the User model or create a Profile model
+                try:
+                    if hasattr(user, 'profile') and user.profile.phone_number:
+                        validated_data['p_phone'] = user.profile.phone_number
+                except Exception:
+                    pass
+                
+                if not validated_data.get('p_phone'):
+                     validated_data['p_phone'] = ''
+        
         return super().create(validated_data)
 
 
