@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }) => {
                 // } else {
                 // Load full user profile
                 const response = await axios.get(API_ENDPOINTS.auth.profile);
+                console.log('User Profile (loadUser):', response.data);
                 setUser(response.data);
                 // }
             } catch (error) {
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }) => {
             // Fetch user profile directly and return it
             const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
             const userData = profileResponse.data;
+            console.log('User Profile (login):', userData);
             setUser(userData);
 
             toast.success('Login successful!');
