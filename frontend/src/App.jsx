@@ -65,7 +65,11 @@ function App() {
                 </Route>
 
                 {/* Admin Login - Standalone (No Layout) */}
-                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/admin-login" element={
+                    <PublicRoute>
+                        <AdminLogin />
+                    </PublicRoute>
+                } />
 
                 {/* Doctor Dashboard with DoctorLayout (separate from main Layout) */}
                 <Route path="/dashboard" element={
