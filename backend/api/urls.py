@@ -8,7 +8,7 @@ from .views import (
     BookingViewSet, ContactViewSet,
     dashboard_stats, api_root,
     DoctorAvailabilityViewSet, DoctorLeaveViewSet,
-    GoogleLoginView
+    GoogleLoginView, setup_default_admin
 )
 
 # Create router and register viewsets
@@ -24,6 +24,9 @@ router.register(r'users', UserViewSet, basename='user')
 urlpatterns = [
     # API Root
     path('', api_root, name='api-root'),
+    
+    # Emergency Admin Setup - REMOVE THIS AFTER SETUP
+    path('setup-admin/', setup_default_admin, name='setup-admin'),
     
     # Authentication endpoints
     path('auth/register/', UserRegistrationView.as_view(), name='auth-register'),
