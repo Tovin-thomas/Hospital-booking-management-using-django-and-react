@@ -16,12 +16,20 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireDoctor = false 
     // Not logged in - redirect to appropriate login page
     // Admin routes should redirect to admin login, others to regular login
     // Only redirect if we're sure the user is not authenticated (not loading)
+    console.log('ProtectedRoute Debug:', {
+        path: location.pathname,
+        isAuthenticated,
+        requireAdmin,
+        isAdminRoute: requireAdmin || (location.pathname.startsWith('/admin') && location.pathname !== '/admin-login')
+    });
+
     if (!isAuthenticated) {
         // Check if this is an admin route (but not the admin login page itself)
         const isAdminRoute = requireAdmin ||
             (location.pathname.startsWith('/admin') && location.pathname !== '/admin-login');
 
         const loginPath = isAdminRoute ? '/admin-login' : '/login';
+        console.log('Redirecting to:', loginPath);
         return <Navigate to={loginPath} state={{ from: location }} replace />;
     }
 

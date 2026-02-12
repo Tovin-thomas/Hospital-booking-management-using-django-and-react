@@ -53,7 +53,8 @@ export const AuthProvider = ({ children }) => {
                 setUser(response.data);
                 // }
             } catch (error) {
-                console.error('Error loading user:', error);
+                console.error('Error loading user (Check Network Tab!):', error);
+                console.log('Error details:', error.response || error.message);
                 // Only logout if it's strictly an auth error (handled by interceptor usually, but here for safety)
                 // If the error was 401, the interceptor would have tried to refresh already.
                 // If it failed after refresh, we might need to logout.
