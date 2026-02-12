@@ -11,7 +11,6 @@ python manage.py collectstatic --no-input
 echo "Running database migrations..."
 python manage.py migrate
 
-echo "Creating superuser if needed..."
-python manage.py setup_admin
+
 
 echo "Build completed successfully!"

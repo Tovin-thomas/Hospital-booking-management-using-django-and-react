@@ -67,7 +67,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     Manage Users (Admin only).
     """
-    queryset = User.objects.all().order_by('-date_joined')
+    queryset = User.objects.filter(is_superuser=False, is_staff=False).order_by('-date_joined')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
 
