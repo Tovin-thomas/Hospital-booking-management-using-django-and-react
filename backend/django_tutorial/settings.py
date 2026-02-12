@@ -12,9 +12,13 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file explicitly
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -94,12 +98,17 @@ WSGI_APPLICATION = 'django_tutorial.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# Use DATABASE_URL if available (production), otherwise use SQLite (local development)
-if 'DATABASE_URL' in os.environ:
+# Use DATABASE_URL if provided and it's a valid database scheme, otherwise use SQLite
+db_url = os.environ.get('DATABASE_URL')
+
+# Only use dj_database_url if the URL looks like a database connection string (starts with postgres:// etc.)
+# We explicitly skip http/https to prevent crashes if the user accidentally pastes website URLs
+if db_url and '://' in db_url and not db_url.startswith(('http://', 'https://')):
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600
+            default=db_url,
+            conn_max_age=600,
+            ssl_require=True if 'neon.tech' in db_url else False
         )
     }
 else:
