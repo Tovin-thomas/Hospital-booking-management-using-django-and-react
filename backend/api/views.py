@@ -639,34 +639,4 @@ class GoogleLoginView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-# Emergency Admin Setup
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def setup_default_admin(request):
-    """
-    Creates or Updates 'tov' as superuser.
-    Access this ONCE to set up your admin account.
-    """
-    try:
-        # Get or Create user 'tov'
-        user, created = User.objects.get_or_create(username='tov')
-        
-        # Promote to Superuser
-        user.email = 'tov@hospital.com'
-        user.is_staff = True
-        user.is_superuser = True
-        user.set_password('tov') # Reset password to 'tov'
-        user.save()
-        
-        # Ensure profile exists (to avoid signal errors)
-        if not hasattr(user, 'profile'):
-            from core.models import UserProfile
-            UserProfile.objects.get_or_create(user=user)
-            
-        return Response({
-            "message": "Superuser 'tov' configured successfully!", 
-            "details": "User 'tov' is now a Superuser with password 'tov'.",
-            "login_url": "/admin-login"
-        })
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+
