@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
+import { toast } from 'react-toastify';
 
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, googleLogin } = useAuth();
+    const { login, googleLogin, logout } = useAuth();
     const [formLoading, setFormLoading] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
@@ -22,35 +23,42 @@ const Login = () => {
         });
     };
 
+    const handleLoginSuccess = (user) => {
+        // Enforce Patient-Only Access
+        const isSuperUser = user?.is_superuser;
+        const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
+
+        if (isSuperUser) {
+            toast.error('This page is for Patients only. Admins must use /admin-login.');
+            logout(); // Log them out immediately
+            return;
+        }
+
+        if (isDoctor) {
+            toast.error('This page is for Patients only. Doctors must use the Doctor Portal.');
+            logout(); // Log them out immediately
+            return;
+        }
+
+        // If regular patient, proceed
+        let redirectPath = '/';
+        if (from !== '/' && from !== '/login' && from !== '/register') {
+            redirectPath = from;
+        }
+        navigate(redirectPath, { replace: true });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
 
         const result = await login(formData);
+        console.log('Login Result:', result); // Debug
 
         setFormLoading(false);
 
         if (result.success) {
-            // Redirect based on user role:
-            // - Superusers go to admin dashboard
-            // - Doctors (is_staff but not superuser, or role === 'doctor') go to their dashboard
-            // - Regular patients go to home page
-            const user = result.user;
-            const isSuperUser = user?.is_superuser;
-            const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
-
-            let redirectPath = '/'; // Default: home page for regular patients
-
-            if (isSuperUser) {
-                redirectPath = '/admin/dashboard';
-            } else if (isDoctor) {
-                redirectPath = '/dashboard';
-            } else if (from !== '/' && from !== '/login' && from !== '/register') {
-                // If they were trying to access a specific page, redirect there
-                redirectPath = from;
-            }
-
-            navigate(redirectPath, { replace: true });
+            handleLoginSuccess(result.user);
         }
     };
 
@@ -111,22 +119,12 @@ const Login = () => {
                             onSuccess={async (credentialResponse) => {
                                 const result = await googleLogin(credentialResponse.credential);
                                 if (result.success) {
-                                    // Handle redirection (same logic as normal login)
-                                    // Reuse handleSubmit logic or duplicate redirection logic here?
-                                    // Let's duplicate quickly or extract function.
-                                    // Duplicating for simplicity now.
-                                    const user = result.user;
-                                    const isSuperUser = user?.is_superuser;
-                                    const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
-                                    let redirectPath = '/';
-                                    if (isSuperUser) redirectPath = '/admin/dashboard';
-                                    else if (isDoctor) redirectPath = '/dashboard';
-                                    else if (from !== '/' && from !== '/login' && from !== '/register') redirectPath = from;
-                                    navigate(redirectPath, { replace: true });
+                                    handleLoginSuccess(result.user);
                                 }
                             }}
                             onError={() => {
                                 console.log('Login Failed');
+                                toast.error('Google Login Failed');
                             }}
                             useOneTap
                         />
