@@ -644,24 +644,29 @@ class GoogleLoginView(APIView):
 @permission_classes([AllowAny])
 def setup_default_admin(request):
     """
-    Creates a default superuser if none exists.
+    Creates or Updates 'tov' as superuser.
     Access this ONCE to set up your admin account.
     """
-    if User.objects.filter(is_superuser=True).exists():
-        # Check if 'tov' exists specifically
-        if User.objects.filter(username='tov', is_superuser=True).exists():
-            return Response({"message": "Superuser 'tov' already exists. Please login with password 'tov'."}, status=200)
-        else:
-             return Response({"message": "A superuser already exists, but not 'tov'. Please ask the admin for credentials."}, status=200)
-    
     try:
-        # Create 'tov' superuser
-        User.objects.create_superuser('tov', 'tov@hospital.com', 'tov')
+        # Get or Create user 'tov'
+        user, created = User.objects.get_or_create(username='tov')
+        
+        # Promote to Superuser
+        user.email = 'tov@hospital.com'
+        user.is_staff = True
+        user.is_superuser = True
+        user.set_password('tov') # Reset password to 'tov'
+        user.save()
+        
+        # Ensure profile exists (to avoid signal errors)
+        if not hasattr(user, 'profile'):
+            from core.models import UserProfile
+            UserProfile.objects.get_or_create(user=user)
+            
         return Response({
-            "message": "Superuser 'tov' created successfully!", 
-            "username": "tov",
-            "password": "tov",
-            "action": "Please login at /admin-login now."
+            "message": "Superuser 'tov' configured successfully!", 
+            "details": "User 'tov' is now a Superuser with password 'tov'.",
+            "login_url": "/admin-login"
         })
     except Exception as e:
         return Response({"error": str(e)}, status=500)
