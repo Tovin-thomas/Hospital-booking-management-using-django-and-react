@@ -5,6 +5,7 @@ import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
+import { getImageUrl } from '../../utils/formatters';
 
 const AdminDoctors = () => {
     const [showModal, setShowModal] = useState(false);
@@ -184,7 +185,7 @@ const AdminDoctors = () => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                             {doctor.doc_image_url ? (
                                                 <img
-                                                    src={doctor.doc_image_url}
+                                                    src={getImageUrl(doctor.doc_image_url)}
                                                     alt={doctor.doc_name}
                                                     style={{
                                                         width: '48px',
@@ -329,7 +330,7 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
         department_id: doctor?.department_id || '',
         doc_image: null,
     });
-    const [imagePreview, setImagePreview] = useState(doctor?.doc_image_url || null);
+    const [imagePreview, setImagePreview] = useState(getImageUrl(doctor?.doc_image_url) || null);
 
     const createOrUpdateDoctor = useMutation({
         mutationFn: async (data) => {

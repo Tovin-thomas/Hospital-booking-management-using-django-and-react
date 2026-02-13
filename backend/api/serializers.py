@@ -138,12 +138,17 @@ class DoctorSerializer(serializers.ModelSerializer):
         ]
     
     def get_doc_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.doc_image and hasattr(obj.doc_image, 'url'):
-            if request:
-                return request.build_absolute_uri(obj.doc_image.url)
-            return obj.doc_image.url
-        return None
+        if not obj.doc_image:
+            return None
+            
+        try:
+            url = obj.doc_image.url
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
 
 
 class DoctorListSerializer(serializers.ModelSerializer):
@@ -165,12 +170,17 @@ class DoctorListSerializer(serializers.ModelSerializer):
         ]
     
     def get_doc_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.doc_image and hasattr(obj.doc_image, 'url'):
-            if request:
-                return request.build_absolute_uri(obj.doc_image.url)
-            return obj.doc_image.url
-        return None
+        if not obj.doc_image:
+            return None
+            
+        try:
+            url = obj.doc_image.url
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
 
 
 class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
@@ -198,12 +208,17 @@ class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'current_status', 'doc_image_url']
     
     def get_doc_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.doc_image and hasattr(obj.doc_image, 'url'):
-            if request:
-                return request.build_absolute_uri(obj.doc_image.url)
-            return obj.doc_image.url
-        return None
+        if not obj.doc_image:
+            return None
+            
+        try:
+            url = obj.doc_image.url
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
     
     def validate(self, attrs):
         # For creation, require user credentials

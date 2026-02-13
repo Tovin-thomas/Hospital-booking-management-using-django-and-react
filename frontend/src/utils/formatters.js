@@ -83,3 +83,32 @@ export const getInitials = (name) => {
         .toUpperCase()
         .substring(0, 2);
 };
+/**
+ * Get full image URL from a relative or absolute path
+ */
+export const getImageUrl = (url) => {
+    if (!url) return null;
+
+    // If it's already an absolute URL (starts with http or https)
+    if (url.startsWith('http')) return url;
+
+    // If it's a data URL (base64)
+    if (url.startsWith('data:')) return url;
+
+    // Get backend base URL
+    // Try VITE_MEDIA_URL first, then fallback to deriving from VITE_API_URL
+    const mediaUrl = import.meta.env.VITE_MEDIA_URL;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+    let baseUrl = mediaUrl ? mediaUrl.replace(/\/+$/, '') : apiUrl.replace(/\/api\/?$/, '');
+
+    // Ensure the path starts with a slash
+    const path = url.startsWith('/') ? url : `/${url}`;
+
+    // If we're using VITE_MEDIA_URL and it already includes /media, and path also includes /media, don't double it
+    if (mediaUrl && path.startsWith('/media/')) {
+        baseUrl = baseUrl.replace(/\/media\/?$/, '');
+    }
+
+    return `${baseUrl}${path}`;
+};

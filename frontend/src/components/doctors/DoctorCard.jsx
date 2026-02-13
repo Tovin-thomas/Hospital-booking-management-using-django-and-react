@@ -1,9 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../../utils/formatters';
 
 const DoctorCard = ({ doctor }) => {
+    // Ensure we have a full URL for the image
+    const doctorImage = getImageUrl(doctor.doc_image_url);
+
     // Professional fallback avatar if no image exists
-    const imageUrl = doctor.doc_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.doc_name)}&size=300&background=2563eb&color=fff`;
+    const imageUrl = doctorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.doc_name)}&size=300&background=2563eb&color=fff`;
 
     return (
         <div className="card h-100 border-0" style={{
