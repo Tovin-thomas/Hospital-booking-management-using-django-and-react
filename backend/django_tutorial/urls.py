@@ -24,6 +24,9 @@ def api_root_redirect(request):
         }
     })
 
+from django.views.static import serve
+import re
+
 urlpatterns = [
     # Root - API info
     path('', api_root_redirect, name='api-root'),
@@ -34,4 +37,7 @@ urlpatterns = [
     # REST API (All functionality is here)
     path('api/', include('api.urls')),
     
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Media files fallback for production (Render/Vercel)
+    # Note: Cloudinary is preferred, but this allows local disk storage to work for testing
+    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
+]

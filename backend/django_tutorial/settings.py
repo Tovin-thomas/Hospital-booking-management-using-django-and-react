@@ -39,6 +39,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
 ]
 
+# Important for Render to handle HTTPS correctly
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 
 # Application definition
@@ -49,7 +52,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage', # Must be before staticfiles
     'django.contrib.staticfiles',
+    'cloudinary',
     # REST Framework
     'rest_framework',
     'rest_framework_simplejwt',
@@ -61,9 +66,6 @@ INSTALLED_APPS = [
     'bookings',  # Booking model
     # API App (React backend)
     'api',
-    # Cloudinary storage
-    'cloudinary_storage',
-    'cloudinary',
 ]
 
 MIDDLEWARE = [
