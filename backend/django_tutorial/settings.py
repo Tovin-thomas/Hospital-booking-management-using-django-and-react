@@ -175,7 +175,6 @@ MEDIA_ROOT = BASE_DIR / 'uploads'
 MEDIA_URL = '/media/'
 
 # Cloudinary Settings for Production Image Storage
-# These will only be used if the environment variables are set in Render
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
@@ -183,7 +182,25 @@ CLOUDINARY_STORAGE = {
 }
 
 if CLOUDINARY_STORAGE['CLOUD_NAME']:
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    print(f"✅ Cloudinary detected: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    print("⚠️ Cloudinary NOT detected. Falling back to local storage.")
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 # Login/Logout redirect settings (for Django Admin only)
 LOGIN_REDIRECT_URL = 'api-root'
