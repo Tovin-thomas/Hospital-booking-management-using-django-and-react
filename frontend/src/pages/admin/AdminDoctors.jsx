@@ -353,8 +353,8 @@ const DoctorModal = ({ doctor, departments, onClose, onSuccess }) => {
             }
 
             if (doctor) {
-                // UPDATE existing doctor
-                const response = await axios.put(API_ENDPOINTS.doctors.update(doctor.id), formDataToSend, {
+                // UPDATE existing doctor - use PATCH for partial update
+                const response = await axios.patch(API_ENDPOINTS.doctors.update(doctor.id), formDataToSend, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
