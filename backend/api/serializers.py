@@ -143,6 +143,10 @@ class DoctorSerializer(serializers.ModelSerializer):
             
         try:
             url = obj.doc_image.url
+            # Cloudinary returns full absolute URLs - don't prepend backend domain
+            if url.startswith('http'):
+                return url
+            # Local storage: build full URL from request
             request = self.context.get('request')
             if request is not None:
                 return request.build_absolute_uri(url)
@@ -175,6 +179,10 @@ class DoctorListSerializer(serializers.ModelSerializer):
             
         try:
             url = obj.doc_image.url
+            # Cloudinary returns full absolute URLs - don't prepend backend domain
+            if url.startswith('http'):
+                return url
+            # Local storage: build full URL from request
             request = self.context.get('request')
             if request is not None:
                 return request.build_absolute_uri(url)
@@ -213,6 +221,10 @@ class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
             
         try:
             url = obj.doc_image.url
+            # Cloudinary returns full absolute URLs - don't prepend backend domain
+            if url.startswith('http'):
+                return url
+            # Local storage: build full URL from request
             request = self.context.get('request')
             if request is not None:
                 return request.build_absolute_uri(url)

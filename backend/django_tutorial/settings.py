@@ -181,8 +181,7 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-if CLOUDINARY_STORAGE['CLOUD_NAME']:
-    print(f"✅ Cloudinary detected: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
+if CLOUDINARY_STORAGE.get('CLOUD_NAME'):
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
@@ -192,7 +191,6 @@ if CLOUDINARY_STORAGE['CLOUD_NAME']:
         },
     }
 else:
-    print("⚠️ Cloudinary NOT detected. Falling back to local storage.")
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
