@@ -1,72 +1,45 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import axios from '../api/axios';
+import axios, { tokenStore } from '../api/axios';
 import API_ENDPOINTS from '../api/endpoints';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    // Initialize user from localStorage to prevent race conditions
-    const [user, setUser] = useState(() => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                // Check if token is not expired - RELAXED for clock skew
-                // if (decoded.exp * 1000 > Date.now()) {
-                // Return a temporary user object to maintain auth state
-                // Full profile will be loaded in useEffect
-                return { id: decoded.user_id, isTemporary: true };
-                // }
-            } catch (error) {
-                console.error('Error decoding token:', error);
-            }
-        }
-        return null;
-    });
+    // Check if a refresh token exists in sessionStorage to restore session on page refresh
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Load user from token on mount
+    // On mount — if a refresh token exists in sessionStorage, restore the session
     useEffect(() => {
-        loadUser();
+        const refreshToken = tokenStore.getRefresh();
+        if (refreshToken) {
+            restoreSession(refreshToken);
+        } else {
+            setLoading(false);
+        }
     }, []);
 
-    const loadUser = async () => {
-        const token = localStorage.getItem('access_token');
+    // Restore session using refresh token (called on page refresh/mount)
+    const restoreSession = async (refreshToken) => {
+        try {
+            const response = await axios.post(API_ENDPOINTS.auth.refresh, {
+                refresh: refreshToken,
+            });
+            const { access } = response.data;
+            tokenStore.setAccess(access); // Put new access token back into memory
 
-        if (token) {
-            try {
-                // Decode token to get user info
-                // const decoded = jwtDecode(token);
-
-                // RELAXED CHECK: We rely on the API to return 401 if token is expired.
-                // This handles cases where client clock (e.g. 2026) is far ahead of server (2025),
-                // which would otherwise cause an infinite refresh loop.
-
-                // if (decoded.exp * 1000 < Date.now()) {
-                //     // Token expired, try to refresh
-                //     await refreshToken();
-                // } else {
-                // Load full user profile
-                const response = await axios.get(API_ENDPOINTS.auth.profile);
-                console.log('User Profile (loadUser):', response.data);
-                setUser(response.data);
-                // }
-            } catch (error) {
-                console.error('Error loading user (Check Network Tab!):', error);
-                console.log('Error details:', error.response || error.message);
-                // Only logout if it's strictly an auth error (handled by interceptor usually, but here for safety)
-                // If the error was 401, the interceptor would have tried to refresh already.
-                // If it failed after refresh, we might need to logout.
-                if (error.response?.status === 401) {
-                    // Interceptor handles retry, if it bubbles up here it means refresh failed
-                    logout();
-                }
-            }
+            // Load user profile with the new access token
+            const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
+            setUser(profileResponse.data);
+        } catch (error) {
+            // Refresh token expired or invalid — force logout
+            tokenStore.clearAll();
+            setUser(null);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     const login = async (credentials) => {
@@ -74,18 +47,17 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.post(API_ENDPOINTS.auth.login, credentials);
             const { access, refresh } = response.data;
 
-            // Store tokens
-            localStorage.setItem('access_token', access);
-            localStorage.setItem('refresh_token', refresh);
+            // Store securely — access in memory, refresh in sessionStorage
+            tokenStore.setAccess(access);
+            tokenStore.setRefresh(refresh);
 
-            // Fetch user profile directly and return it
+            // Load user profile
             const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
             const userData = profileResponse.data;
-            console.log('User Profile (login):', userData);
             setUser(userData);
 
             toast.success('Login successful!');
-            return { success: true, user: userData }; // Return the actual user data
+            return { success: true, user: userData };
         } catch (error) {
             const message = error.response?.data?.detail || 'Login failed. Please check your credentials.';
             toast.error(message);
@@ -101,13 +73,10 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             const errors = error.response?.data;
             let message = 'Registration failed. Please try again.';
-
             if (errors) {
-                // Extract first error message
                 const firstError = Object.values(errors)[0];
                 message = Array.isArray(firstError) ? firstError[0] : firstError;
             }
-
             toast.error(message);
             return { success: false, error: errors };
         }
@@ -116,20 +85,20 @@ export const AuthProvider = ({ children }) => {
     const googleLogin = async (token) => {
         try {
             const response = await axios.post(API_ENDPOINTS.auth.google, { token });
-            const { access, refresh, user } = response.data;
+            const { access, refresh, user: googleUser } = response.data;
 
-            localStorage.setItem('access_token', access);
-            localStorage.setItem('refresh_token', refresh);
+            tokenStore.setAccess(access);
+            tokenStore.setRefresh(refresh);
 
-            // If backend returns user, set it. Otherwise load it.
-            if (user) {
-                setUser(user);
+            if (googleUser) {
+                setUser(googleUser);
             } else {
-                await loadUser();
+                const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
+                setUser(profileResponse.data);
             }
 
             toast.success('Login successful!');
-            return { success: true, user: user || await loadUser() };
+            return { success: true };
         } catch (error) {
             const message = error.response?.data?.error || 'Google Login failed';
             toast.error(message);
@@ -138,23 +107,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        tokenStore.clearAll(); // Clears memory + sessionStorage + old localStorage
         setUser(null);
         toast.info('Logged out successfully');
-    };
-
-    const refreshToken = async () => {
-        try {
-            const refresh = localStorage.getItem('refresh_token');
-            const response = await axios.post(API_ENDPOINTS.auth.refresh, { refresh });
-            const { access } = response.data;
-            localStorage.setItem('access_token', access);
-            await loadUser();
-        } catch (error) {
-            logout();
-            throw error;
-        }
     };
 
     const updateProfile = async (profileData) => {
