@@ -19,6 +19,8 @@ psycopg2-binary = "*"
 dj-database-url = "*"
 python-decouple = "*"
 python-dotenv = "*"
+cloudinary = "*"
+django-cloudinary-storage = "*"
 
 [dev-packages]
 
