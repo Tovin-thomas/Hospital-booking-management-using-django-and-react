@@ -130,17 +130,6 @@ class DoctorViewSet(viewsets.ModelViewSet):
             return DoctorListSerializer
         return DoctorSerializer
     
-    def partial_update(self, request, *args, **kwargs):
-        """Override to log real errors for debugging"""
-        import traceback
-        try:
-            return super().partial_update(request, *args, **kwargs)
-        except Exception as e:
-            traceback.print_exc()  # Prints full traceback to Render logs
-            return Response(
-                {'error': str(e), 'type': type(e).__name__},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):
