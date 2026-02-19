@@ -24,6 +24,7 @@ const Doctors = () => {
     // Fetch doctors with backend filtering
     const { data: doctors, isLoading: doctorsLoading } = useQuery({
         queryKey: ['doctors', debouncedSearchTerm, selectedDepartment],
+        staleTime: 60 * 1000, // 1 minute - so new doctors appear quickly
         queryFn: async () => {
             // Build query parameters for backend filtering
             const params = new URLSearchParams();
