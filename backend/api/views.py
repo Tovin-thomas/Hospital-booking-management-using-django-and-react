@@ -9,8 +9,9 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django.utils.decorators import method_decorator
 from django.conf import settings
 import requests
@@ -71,7 +72,12 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     Manage Users (Admin only).
     """
-    queryset = User.objects.filter(is_superuser=False, is_staff=False).order_by('-date_joined')
+    # only() fetches only the columns the serializer actually needs — skips password hash etc.
+    queryset = User.objects.filter(
+        is_superuser=False, is_staff=False
+    ).only(
+        'id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'is_active'
+    ).order_by('-date_joined')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
 
@@ -394,28 +400,27 @@ class ContactViewSet(viewsets.ModelViewSet):
     GET /api/contacts/ - List messages (admin only)
     POST /api/contacts/{id}/mark_read/ - Mark as read (admin only)
     """
-    queryset = Contact.objects.all()
+    # only() avoids loading large text blobs until actually needed
+    queryset = Contact.objects.only(
+        'id', 'name', 'email', 'subject', 'message', 'is_read', 'submitted_at'
+    ).order_by('-submitted_at')
     serializer_class = ContactSerializer
     filter_backends = [filters.OrderingFilter]
     ordering = ['-submitted_at']
-    
+
     def get_permissions(self):
         if self.action == 'create':
             return [AllowAny()]
         return [IsAdminUser()]
-    
+
     def create(self, request, *args, **kwargs):
-        print(f"[DEBUG] Contact form received: {request.data}")  # Debug log
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print(f"[DEBUG] Contact form validation errors: {serializer.errors}")  # Debug log
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        print(f"[DEBUG] Contact saved successfully: {serializer.data}")  # Debug log
         return Response({
             'message': 'Thank you for contacting us! We will get back to you soon.',
             'contact': serializer.data
-       }, status=status.HTTP_201_CREATED)
+        }, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def mark_read(self, request, pk=None):
@@ -434,6 +439,8 @@ class ContactViewSet(viewsets.ModelViewSet):
 # Dashboard Stats
 # ===========================
 
+@cache_page(60)             # Cache response for 1 minute per user
+@vary_on_headers('Authorization')  # Each user gets their own cache entry (based on JWT)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
@@ -443,9 +450,20 @@ def dashboard_stats(request):
     """
     user = request.user
     stats = {}
-    
+
     if user.is_superuser:
-        # Admin stats (Superuser only)
+        today = date.today()
+        # Single aggregate query replaces 7 separate COUNT queries — massive DB savings
+        booking_agg = Booking.objects.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            accepted=Count('id', filter=Q(status='accepted')),
+            today_active=Count('id', filter=Q(
+                booking_date=today,
+                status__in=['pending', 'accepted']
+            )),
+            distinct_patients=Count('user', distinct=True),
+        )
         stats = {
             'role': 'admin',
             # is_main_admin is determined entirely by the server using the env variable.
@@ -453,15 +471,12 @@ def dashboard_stats(request):
             'is_main_admin': (user.username == settings.MAIN_ADMIN_USERNAME),
             'total_doctors': Doctors.objects.count(),
             'total_departments': Departments.objects.count(),
-            'total_bookings': Booking.objects.count(),
-            'pending_bookings': Booking.objects.filter(status='pending').count(),
-            'accepted_bookings': Booking.objects.filter(status='accepted').count(),
-            'total_patients': Booking.objects.values('user').distinct().count(),
+            'total_bookings': booking_agg['total'],
+            'pending_bookings': booking_agg['pending'],
+            'accepted_bookings': booking_agg['accepted'],
+            'total_patients': booking_agg['distinct_patients'],
             'unread_contacts': Contact.objects.filter(is_read=False).count(),
-            'today_bookings': Booking.objects.filter(
-                booking_date=date.today(),
-                status__in=['pending', 'accepted']
-            ).count(),
+            'today_bookings': booking_agg['today_active'],
         }
     elif Doctors.objects.filter(user=user).exists():
         # Doctor stats
@@ -677,8 +692,15 @@ class AdminListView(APIView):
     """
     permission_classes = [IsAdminUser]
 
+    # Cache admin list for 2 minutes — accounts change rarely.
+    # vary_on_headers ensures each logged-in admin gets their own cache entry.
+    @method_decorator(cache_page(60 * 2))
+    @method_decorator(vary_on_headers('Authorization'))
     def get(self, request):
-        admins = User.objects.filter(is_superuser=True).order_by('date_joined')
+        # only() fetches exactly the 7 columns we need, skips password hash & other heavy fields
+        admins = User.objects.filter(is_superuser=True).only(
+            'id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login'
+        ).order_by('date_joined')
         data = [
             {
                 'id': u.id,

@@ -1,12 +1,35 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import axios from '../../api/axios';
+import API_ENDPOINTS from '../../api/endpoints';
 
-const AdminLayout = ({ children }) => {
+// ── Prefetch helpers ─────────────────────────────────────────────
+// Called on sidebar link hover — data starts loading BEFORE the user clicks.
+// React Query deduplicates, so if data is already fresh it does nothing.
+const prefetchMap = {
+    '/admin/dashboard': (qc) => {
+        qc.prefetchQuery({ queryKey: ['admin-dashboard-stats'], queryFn: () => axios.get(API_ENDPOINTS.dashboard.stats).then(r => r.data) });
+        qc.prefetchQuery({ queryKey: ['admin-list'], queryFn: () => axios.get(API_ENDPOINTS.admins.list).then(r => r.data) });
+    },
+    '/admin/doctors': (qc) => qc.prefetchQuery({ queryKey: ['admin-doctors'], queryFn: () => axios.get(API_ENDPOINTS.doctors.list).then(r => r.data) }),
+    '/admin/departments': (qc) => qc.prefetchQuery({ queryKey: ['admin-departments'], queryFn: () => axios.get(API_ENDPOINTS.departments.list).then(r => r.data) }),
+    '/admin/bookings': (qc) => qc.prefetchQuery({ queryKey: ['admin-bookings'], queryFn: () => axios.get(API_ENDPOINTS.bookings.list).then(r => r.data) }),
+    '/admin/users': (qc) => qc.prefetchQuery({ queryKey: ['admin-users'], queryFn: () => axios.get(API_ENDPOINTS.users.list).then(r => r.data) }),
+    '/admin/contacts': (qc) => qc.prefetchQuery({ queryKey: ['admin-contacts'], queryFn: () => axios.get(API_ENDPOINTS.contacts.list).then(r => r.data) }),
+    '/admin/admins': (qc) => qc.prefetchQuery({ queryKey: ['admin-list'], queryFn: () => axios.get(API_ENDPOINTS.admins.list).then(r => r.data) }),
+};
+
+// React.memo — prevents AdminLayout from re-rendering when parent state changes
+// (e.g. when a modal opens inside a page, the whole sidebar won't re-render)
+const AdminLayout = React.memo(({ children }) => {
     const { user, logout } = useAuth();
     const location = useLocation();
+    const queryClient = useQueryClient();
 
-    const menuItems = [
+    // useMemo — menuItems array is built ONCE, not rebuilt on every render
+    const menuItems = useMemo(() => [
         { path: '/admin/dashboard', icon: 'fas fa-chart-line', label: 'Dashboard' },
         { path: '/admin/doctors', icon: 'fas fa-user-md', label: 'Doctors' },
         { path: '/admin/departments', icon: 'fas fa-hospital', label: 'Departments' },
@@ -15,9 +38,16 @@ const AdminLayout = ({ children }) => {
         { path: '/admin/users', icon: 'fas fa-users', label: 'Users' },
         { path: '/admin/contacts', icon: 'fas fa-envelope', label: 'Messages' },
         { path: '/admin/admins', icon: 'fas fa-user-shield', label: 'Manage Admins' },
-    ];
+    ], []); // empty deps — never changes
 
-    const isActive = (path) => location.pathname === path;
+    // useCallback — stable function reference, not recreated on every render
+    const isActive = useCallback((path) => location.pathname === path, [location.pathname]);
+
+    // Prefetch on hover — data loads BEFORE the click happens
+    const handleLinkHover = useCallback((path) => {
+        const prefetch = prefetchMap[path];
+        if (prefetch) prefetch(queryClient);
+    }, [queryClient]);
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -75,6 +105,19 @@ const AdminLayout = ({ children }) => {
                         <Link
                             key={item.path}
                             to={item.path}
+                            onMouseEnter={(e) => {
+                                handleLinkHover(item.path); // prefetch data on hover
+                                if (!isActive(item.path)) {
+                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                                    e.currentTarget.style.color = 'white';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isActive(item.path)) {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = '#94a3b8';
+                                }
+                            }}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -87,18 +130,6 @@ const AdminLayout = ({ children }) => {
                                 transition: 'all 0.2s',
                                 fontWeight: isActive(item.path) ? 600 : 400,
                                 fontSize: '0.9375rem'
-                            }}
-                            onMouseEnter={(e) => {
-                                if (!isActive(item.path)) {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-                                    e.currentTarget.style.color = 'white';
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                if (!isActive(item.path)) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = '#94a3b8';
-                                }
                             }}
                         >
                             <i className={item.icon} style={{ width: '20px', fontSize: '1.125rem' }}></i>
@@ -179,6 +210,8 @@ const AdminLayout = ({ children }) => {
             </main>
         </div>
     );
-};
+});
 
+AdminLayout.displayName = 'AdminLayout';
 export default AdminLayout;
+
