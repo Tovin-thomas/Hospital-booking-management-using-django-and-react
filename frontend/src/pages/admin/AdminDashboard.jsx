@@ -355,7 +355,7 @@ const AdminDashboard = () => {
                 {!isMainAdmin && (
                     <p style={{ margin: '1rem 0 0', fontSize: '0.8125rem', color: '#94a3b8' }}>
                         <i className="fas fa-info-circle" style={{ marginRight: '0.4rem' }} />
-                        Only tov can add or remove administrators.
+                        Only the <strong>main administrator</strong> can add or remove administrators.
                     </p>
                 )}
             </div>

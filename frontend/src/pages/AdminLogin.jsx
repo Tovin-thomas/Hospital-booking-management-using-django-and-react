@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
     const [formData, setFormData] = useState({
         username: '',
         password: ''
     });
-    const [error, setError] = useState('');
+    // Show any error passed via router state (e.g. 'Access denied' from ProtectedRoute)
+    const [error, setError] = useState(location.state?.error || '');
     const [loading, setLoading] = useState(false);
+    // Where to go after successful login (defaults to admin dashboard)
+    const from = location.state?.from?.pathname || '/admin/dashboard';
 
     const handleChange = (e) => {
         setFormData({
@@ -28,15 +32,15 @@ const AdminLogin = () => {
         const result = await login(formData);
 
         if (result.success) {
-            // Check if user is actually a superuser
             if (result.user?.is_superuser) {
-                navigate('/admin/dashboard');
+                navigate(from, { replace: true });
             } else {
-                setError('Access denied. This login is for administrators only.');
+                setError('Access denied. This login is for administrators only. Your account does not have admin privileges.');
                 setLoading(false);
             }
         } else {
-            setError(result.error || 'Invalid credentials');
+            // Show the exact error from the server (wrong password, user not found, etc.)
+            setError(result.error || 'Invalid credentials. Please check your username and password.');
             setLoading(false);
         }
     };

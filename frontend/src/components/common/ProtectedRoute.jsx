@@ -13,41 +13,30 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireDoctor = false 
         return <Loading text="Checking authentication..." />;
     }
 
-    // Not logged in - redirect to appropriate login page
-    // Admin routes should redirect to admin login, others to regular login
-    // Only redirect if we're sure the user is not authenticated (not loading)
-    console.log('ProtectedRoute Debug:', {
-        path: location.pathname,
-        isAuthenticated,
-        requireAdmin,
-        isAdminRoute: requireAdmin || (location.pathname.startsWith('/admin') && location.pathname !== '/admin-login')
-    });
-
+    // Not logged in — redirect to appropriate login page
     if (!isAuthenticated) {
-        // Check if this is an admin route (but not the admin login page itself)
         const isAdminRoute = requireAdmin ||
             (location.pathname.startsWith('/admin') && location.pathname !== '/admin-login');
-
         const loginPath = isAdminRoute ? '/admin-login' : '/login';
-        console.log('Redirecting to:', loginPath);
         return <Navigate to={loginPath} state={{ from: location }} replace />;
     }
 
-    // Only redirect SUPERUSERS to admin panel
-    // Staff (Doctors) should be allowed to access the normal dashboard/pages
+    // Superusers should always be in admin panel, not on user pages
     if (user?.is_superuser && !location.pathname.startsWith('/admin')) {
         return <Navigate to="/admin/dashboard" replace />;
     }
 
-    // Non-admin trying to access admin pages
-    // Strictly require SUPERUSER for admin routes
+    // Non-admin trying to access admin pages — redirect to admin login with error
     const isSuperUser = user?.is_superuser;
     if (requireAdmin && !isSuperUser) {
-        return <Navigate to="/" replace />;
+        return <Navigate
+            to="/admin-login"
+            state={{ error: 'Access denied. You must be an administrator to view this page.' }}
+            replace
+        />;
     }
 
     // Route requires doctor/staff access (e.g., Dashboard)
-    // Regular patients should be redirected to home page
     const isDoctor = user?.is_staff;
     if (requireDoctor && !isDoctor && !isSuperUser) {
         return <Navigate to="/" replace />;

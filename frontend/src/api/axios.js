@@ -79,7 +79,10 @@ axiosInstance.interceptors.response.use(
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
                 tokenStore.clearAll();
-                window.location.href = '/login';
+                // Redirect to the correct login page based on the route that failed
+                const isAdminRoute = originalRequest.url?.includes('/admin') ||
+                    window.location.pathname.startsWith('/admin');
+                window.location.href = isAdminRoute ? '/admin-login' : '/login';
                 return Promise.reject(refreshError);
             }
         }
