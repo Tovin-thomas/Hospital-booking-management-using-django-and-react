@@ -8,7 +8,8 @@ from .views import (
     BookingViewSet, ContactViewSet,
     dashboard_stats, api_root,
     DoctorAvailabilityViewSet, DoctorLeaveViewSet,
-    GoogleLoginView
+    GoogleLoginView,
+    AdminListView, AdminCreateView, AdminRemoveView,
 )
 
 # Create router and register viewsets
@@ -24,17 +25,22 @@ router.register(r'users', UserViewSet, basename='user')
 urlpatterns = [
     # API Root
     path('', api_root, name='api-root'),
-    
+
     # Authentication endpoints
     path('auth/register/', UserRegistrationView.as_view(), name='auth-register'),
     path('auth/login/', TokenObtainPairView.as_view(), name='auth-login'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='auth-refresh'),
     path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
     path('auth/google/', GoogleLoginView.as_view(), name='auth-google'),
-    
+
     # Dashboard
     path('dashboard/stats/', dashboard_stats, name='dashboard-stats'),
-    
-    # Include router URLs (departments, doctors, bookings, contacts)
+
+    # Admin management (admintovin only)
+    path('admins/', AdminListView.as_view(), name='admin-list'),
+    path('admins/create/', AdminCreateView.as_view(), name='admin-create'),
+    path('admins/<int:pk>/remove/', AdminRemoveView.as_view(), name='admin-remove'),
+
+    # Include router URLs
     path('', include(router.urls)),
 ]

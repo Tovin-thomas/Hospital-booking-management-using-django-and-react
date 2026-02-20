@@ -641,3 +641,141 @@ class GoogleLoginView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# ===========================
+# Admin Management Views
+# (Only accessible by main admin - admintovin)
+# ===========================
+
+class AdminListView(APIView):
+    """
+    GET /api/admins/ — List all superusers (admins).
+    Any admin can view. Terminal-created superusers appear here automatically.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        admins = User.objects.filter(is_superuser=True).order_by('date_joined')
+        data = [
+            {
+                'id': u.id,
+                'username': u.username,
+                'email': u.email,
+                'first_name': u.first_name,
+                'last_name': u.last_name,
+                'date_joined': u.date_joined,
+                'last_login': u.last_login,
+                'is_main_admin': u.username == 'admintovin',
+            }
+            for u in admins
+        ]
+        return Response(data)
+
+
+class AdminCreateView(APIView):
+    """
+    POST /api/admins/create/ — Promote existing user to admin OR create new admin.
+    Only the main admin (admintovin) can do this.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        # Only the main admin can create other admins
+        if request.user.username != 'admintovin':
+            return Response(
+                {'error': 'Only the main administrator can create new admins.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        action_type = request.data.get('action_type', 'promote')  # 'promote' or 'create'
+
+        if action_type == 'promote':
+            # Promote an existing user by username
+            username = request.data.get('username', '').strip()
+            if not username:
+                return Response({'error': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return Response({'error': f'User "{username}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            if user.is_superuser:
+                return Response({'error': f'{username} is already an admin.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.is_superuser = True
+            user.is_staff = True
+            user.save()
+
+            return Response({
+                'message': f'{username} has been promoted to admin successfully.',
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+            }, status=status.HTTP_200_OK)
+
+        elif action_type == 'create':
+            # Create a completely new admin account
+            username = request.data.get('username', '').strip()
+            email = request.data.get('email', '').strip()
+            password = request.data.get('password', '').strip()
+            first_name = request.data.get('first_name', '').strip()
+            last_name = request.data.get('last_name', '').strip()
+
+            if not username or not password:
+                return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if User.objects.filter(username=username).exists():
+                return Response({'error': f'Username "{username}" already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            from django.contrib.auth.hashers import make_password
+            user = User.objects.create(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=make_password(password),
+                is_superuser=True,
+                is_staff=True,
+            )
+
+            return Response({
+                'message': f'Admin account "{username}" created successfully.',
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({'error': 'Invalid action_type.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminRemoveView(APIView):
+    """
+    POST /api/admins/{id}/remove/ — Remove admin privileges from a user.
+    Only admintovin can do this, and cannot remove themselves.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        if request.user.username != 'admintovin':
+            return Response(
+                {'error': 'Only the main administrator can remove admin access.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.username == 'admintovin':
+            return Response({'error': 'Cannot remove the main administrator.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.is_superuser:
+            return Response({'error': f'{user.username} is not an admin.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_superuser = False
+        user.is_staff = False
+        user.save()
+
+        return Response({'message': f'Admin access removed from {user.username}.'})

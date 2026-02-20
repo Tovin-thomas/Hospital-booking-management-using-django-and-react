@@ -73,6 +73,13 @@ const API_ENDPOINTS = {
     dashboard: {
         stats: '/dashboard/stats/',
     },
+
+    // Admin management (admintovin only)
+    admins: {
+        list: '/admins/',
+        create: '/admins/create/',
+        remove: (id) => `/admins/${id}/remove/`,
+    },
 };
 
 export default API_ENDPOINTS;
