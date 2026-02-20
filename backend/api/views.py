@@ -9,6 +9,9 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Count, Prefetch
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 import requests
 from datetime import datetime, timedelta, date
 
@@ -80,13 +83,20 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     PUT /api/departments/{id}/ - Update (admin)
     DELETE /api/departments/{id}/ - Delete (admin)
     """
-    queryset = Departments.objects.all()
+    # Annotate doctor_count in a single SQL query (no N+1 per department).
+    # Django's default reverse name for the Doctors FK to Departments is 'doctors' (lowercase model name).
+    queryset = Departments.objects.annotate(annotated_doctor_count=Count('doctors')).order_by('dep_name')
     serializer_class = DepartmentSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['dep_name', 'dep_decription']
     ordering_fields = ['dep_name']
     ordering = ['dep_name']
-    
+
+    # Cache public list for 5 minutes — departments change very rarely
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_permissions(self):
         """Allow public read access, but require admin for write access"""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -110,13 +120,22 @@ class DoctorViewSet(viewsets.ModelViewSet):
     GET /api/doctors/{id}/leaves/ - Get leaves
     GET /api/doctors/{id}/available_slots/?date=YYYY-MM-DD - Get available slots
     """
+    # select_related covers all FK joins in a single query.
+    # prefetch_related('availabilities') is only needed for detail/availability views;
+    # for the list view DoctorListSerializer no longer serializes availabilities/leaves
+    # so we avoid pulling that data unnecessarily.
     queryset = Doctors.objects.all().select_related('dep_name', 'user').prefetch_related('availabilities', 'leaves')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['dep_name', 'doc_spec']
     search_fields = ['doc_name', 'doc_spec']
     ordering_fields = ['doc_name']
     ordering = ['doc_name']
-    
+
+    # Cache public doctor list for 5 minutes
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_permissions(self):
         """Allow public read access, but require admin for create/update/delete"""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:

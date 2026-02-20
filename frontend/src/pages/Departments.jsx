@@ -8,6 +8,8 @@ import Loading from '../components/common/Loading';
 const Departments = () => {
     const { data: departments, isLoading } = useQuery({
         queryKey: ['departments'],
+        staleTime: 10 * 60 * 1000, // 10 minutes - departments rarely change
+        gcTime: 15 * 60 * 1000,    // keep in memory for 15 minutes
         queryFn: async () => {
             const response = await axios.get(API_ENDPOINTS.departments.list);
             return response.data.results || response.data;

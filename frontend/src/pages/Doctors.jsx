@@ -24,7 +24,8 @@ const Doctors = () => {
     // Fetch doctors with backend filtering
     const { data: doctors, isLoading: doctorsLoading } = useQuery({
         queryKey: ['doctors', debouncedSearchTerm, selectedDepartment],
-        staleTime: 60 * 1000, // 1 minute - so new doctors appear quickly
+        staleTime: 10 * 60 * 1000, // 10 minutes - doctors/departments rarely change
+        gcTime: 15 * 60 * 1000,    // keep in memory for 15 minutes
         queryFn: async () => {
             // Build query parameters for backend filtering
             const params = new URLSearchParams();
@@ -48,6 +49,8 @@ const Doctors = () => {
     // Fetch departments for filtering
     const { data: departments } = useQuery({
         queryKey: ['departments'],
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 15 * 60 * 1000,
         queryFn: async () => {
             const response = await axios.get(API_ENDPOINTS.departments.list);
             return response.data.results || response.data;

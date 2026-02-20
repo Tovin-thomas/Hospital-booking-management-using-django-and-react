@@ -83,6 +83,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'dep_name', 'dep_decription', 'doctor_count']
     
     def get_doctor_count(self, obj):
+        # Use annotated value if available (avoids N+1 queries in list view)
+        if hasattr(obj, 'annotated_doctor_count'):
+            return obj.annotated_doctor_count
         return obj.doctors_set.count()
 
 
@@ -161,6 +164,8 @@ class DoctorListSerializer(serializers.ModelSerializer):
     department_id = serializers.IntegerField(source='dep_name.id', read_only=True)
     doc_image_url = serializers.SerializerMethodField()
     current_status = serializers.ReadOnlyField()
+    # availabilities is shown on the DoctorCard (weekly schedule), so keep it.
+    # It does NOT cause N+1 queries because DoctorViewSet uses prefetch_related('availabilities').
     availabilities = DoctorAvailabilitySerializer(many=True, read_only=True)
     username = serializers.CharField(source='user.username', read_only=True, allow_null=True)
     email = serializers.EmailField(source='user.email', read_only=True, allow_null=True)
