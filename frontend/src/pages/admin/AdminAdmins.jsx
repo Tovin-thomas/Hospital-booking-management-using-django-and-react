@@ -180,14 +180,14 @@ const AdminAdmins = () => {
     const removeMutation = useMutation({
         mutationFn: (id) => axios.post(API_ENDPOINTS.admins.remove(id)),
         onSuccess: () => {
-            toast.success('Admin access removed successfully.');
+            toast.success('Admin account permanently deleted.');
             queryClient.invalidateQueries({ queryKey: ['admin-list'] });
         },
-        onError: (error) => toast.error(error.response?.data?.error || 'Failed to remove admin.'),
+        onError: (error) => toast.error(error.response?.data?.error || 'Failed to delete admin.'),
     });
 
     const handleRemove = (admin) => {
-        if (window.confirm(`Remove admin access from "${admin.username}"? They will become a regular user.`)) {
+        if (window.confirm(`⚠️ Permanently DELETE admin account "${admin.username}"?\n\nThis will completely remove them from the database. This action CANNOT be undone.`)) {
             removeMutation.mutate(admin.id);
         }
     };
@@ -339,8 +339,8 @@ const AdminAdmins = () => {
                                         onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fecaca'}
                                         onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
                                     >
-                                        <i className="fas fa-user-minus" />
-                                        Remove
+                                        <i className="fas fa-trash" />
+                                        Delete
                                     </button>
                                 )}
                             </div>

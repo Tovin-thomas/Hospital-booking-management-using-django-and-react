@@ -748,8 +748,26 @@ class AdminCreateView(APIView):
             if not username or not password:
                 return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if User.objects.filter(username=username).exists():
-                return Response({'error': f'Username "{username}" already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if the username already exists
+            existing_user = User.objects.filter(username=username).first()
+            if existing_user:
+                # If they are already an admin, just say so
+                if existing_user.is_superuser:
+                    return Response(
+                        {'error': f'"{username}" is already an admin.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                # If they exist as a regular user (e.g. previously demoted admin),
+                # auto-promote them instead of creating a duplicate account.
+                existing_user.is_superuser = True
+                existing_user.is_staff = True
+                existing_user.save()
+                return Response({
+                    'message': f'"{username}" already had a user account and has been promoted to admin successfully.',
+                    'id': existing_user.id,
+                    'username': existing_user.username,
+                    'email': existing_user.email,
+                }, status=status.HTTP_200_OK)
 
             from django.contrib.auth.hashers import make_password
             user = User.objects.create(
@@ -774,7 +792,7 @@ class AdminCreateView(APIView):
 
 class AdminRemoveView(APIView):
     """
-    POST /api/admins/{id}/remove/ — Remove admin privileges from a user.
+    DELETE /api/admins/{id}/remove/ — Permanently delete an admin account from the database.
     Only the main admin can do this (set via MAIN_ADMIN_USERNAME env variable).
     """
     permission_classes = [IsAdminUser]
@@ -782,7 +800,7 @@ class AdminRemoveView(APIView):
     def post(self, request, pk):
         if request.user.username != settings.MAIN_ADMIN_USERNAME:
             return Response(
-                {'error': 'Only the main administrator can remove admin access.'},
+                {'error': 'Only the main administrator can delete admin accounts.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -792,13 +810,12 @@ class AdminRemoveView(APIView):
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         if user.username == settings.MAIN_ADMIN_USERNAME:
-            return Response({'error': 'Cannot remove the main administrator.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Cannot delete the main administrator account.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_superuser:
             return Response({'error': f'{user.username} is not an admin.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.is_superuser = False
-        user.is_staff = False
-        user.save()
+        username = user.username  # Save before deleting
+        user.delete()             # Permanently remove from database
 
-        return Response({'message': f'Admin access removed from {user.username}.'})
+        return Response({'message': f'Admin account "{username}" has been permanently deleted.'})
