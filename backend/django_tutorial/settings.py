@@ -215,6 +215,10 @@ else:
         },
     }
 
+# Main admin username — loaded from environment variable, NEVER hardcoded in source.
+# Set this in your .env file locally and in Render's environment variables in production.
+MAIN_ADMIN_USERNAME = os.environ.get('MAIN_ADMIN_USERNAME', '')
+
 # Login/Logout redirect settings (for Django Admin only)
 LOGIN_REDIRECT_URL = 'api-root'
 LOGOUT_REDIRECT_URL = 'api-root'

@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Count, Prefetch
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
+from django.conf import settings
 import requests
 from datetime import datetime, timedelta, date
 
@@ -447,6 +448,9 @@ def dashboard_stats(request):
         # Admin stats (Superuser only)
         stats = {
             'role': 'admin',
+            # is_main_admin is determined entirely by the server using the env variable.
+            # The frontend never knows the actual username — it just gets True/False.
+            'is_main_admin': (user.username == settings.MAIN_ADMIN_USERNAME),
             'total_doctors': Doctors.objects.count(),
             'total_departments': Departments.objects.count(),
             'total_bookings': Booking.objects.count(),
@@ -663,7 +667,7 @@ class GoogleLoginView(APIView):
 
 # ===========================
 # Admin Management Views
-# (Only accessible by main admin - admintovin)
+# (Only accessible by main admin - tov)
 # ===========================
 
 class AdminListView(APIView):
@@ -684,7 +688,7 @@ class AdminListView(APIView):
                 'last_name': u.last_name,
                 'date_joined': u.date_joined,
                 'last_login': u.last_login,
-                'is_main_admin': u.username == 'admintovin',
+                'is_main_admin': u.username == settings.MAIN_ADMIN_USERNAME,
             }
             for u in admins
         ]
@@ -694,13 +698,13 @@ class AdminListView(APIView):
 class AdminCreateView(APIView):
     """
     POST /api/admins/create/ — Promote existing user to admin OR create new admin.
-    Only the main admin (admintovin) can do this.
+    Only the main admin can do this (username set via MAIN_ADMIN_USERNAME env variable).
     """
     permission_classes = [IsAdminUser]
 
     def post(self, request):
         # Only the main admin can create other admins
-        if request.user.username != 'admintovin':
+        if request.user.username != settings.MAIN_ADMIN_USERNAME:
             return Response(
                 {'error': 'Only the main administrator can create new admins.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -771,12 +775,12 @@ class AdminCreateView(APIView):
 class AdminRemoveView(APIView):
     """
     POST /api/admins/{id}/remove/ — Remove admin privileges from a user.
-    Only admintovin can do this, and cannot remove themselves.
+    Only the main admin can do this (set via MAIN_ADMIN_USERNAME env variable).
     """
     permission_classes = [IsAdminUser]
 
     def post(self, request, pk):
-        if request.user.username != 'admintovin':
+        if request.user.username != settings.MAIN_ADMIN_USERNAME:
             return Response(
                 {'error': 'Only the main administrator can remove admin access.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -787,7 +791,7 @@ class AdminRemoveView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if user.username == 'admintovin':
+        if user.username == settings.MAIN_ADMIN_USERNAME:
             return Response({'error': 'Cannot remove the main administrator.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_superuser:

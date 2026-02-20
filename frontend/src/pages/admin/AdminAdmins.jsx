@@ -152,11 +152,22 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
 
 // ── Main Admin Management Page ────────────────────────────────────
 const AdminAdmins = () => {
-    const { user: currentUser } = useAuth();
     const queryClient = useQueryClient();
     const [showAddModal, setShowAddModal] = useState(false);
 
-    const isMainAdmin = currentUser?.username === 'admintovin';
+    // Fetch dashboard stats — the server tells us if we are the main admin.
+    // The frontend never hardcodes any username; it simply trusts the server's response.
+    const { data: stats } = useQuery({
+        queryKey: ['admin-dashboard-stats'],
+        queryFn: async () => {
+            const response = await axios.get(API_ENDPOINTS.dashboard.stats);
+            return response.data;
+        },
+    });
+
+    // is_main_admin is a boolean set by the backend based on an environment variable.
+    // This way the actual username is NEVER exposed in frontend source code.
+    const isMainAdmin = stats?.is_main_admin === true;
 
     const { data: adminList = [], isLoading } = useQuery({
         queryKey: ['admin-list'],
@@ -205,7 +216,7 @@ const AdminAdmins = () => {
                 <p style={{ margin: 0, opacity: 0.9 }}>
                     {isMainAdmin
                         ? 'As the main administrator, you can promote users or create new admin accounts.'
-                        : 'View all administrators. Only admintovin can add or remove admins.'}
+                        : 'View all administrators. Only the main administrator can add or remove admins.'}
                 </p>
             </div>
 
@@ -226,7 +237,9 @@ const AdminAdmins = () => {
                     </div>
                     <div>
                         <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Main Admin</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>admintovin</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
+                            {adminList.find(a => a.is_main_admin)?.username || 'Main Administrator'}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,7 +352,7 @@ const AdminAdmins = () => {
                 {!isMainAdmin && (
                     <p style={{ margin: '1.5rem 0 0', fontSize: '0.8125rem', color: '#94a3b8', textAlign: 'center' }}>
                         <i className="fas fa-info-circle" style={{ marginRight: '0.4rem' }} />
-                        Only <strong>admintovin</strong> can add or remove administrators.
+                        Only the <strong>main administrator</strong> can add or remove administrators.
                     </p>
                 )}
             </div>

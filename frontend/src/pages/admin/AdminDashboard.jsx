@@ -6,7 +6,6 @@ import axios from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
-import { useAuth } from '../../context/AuthContext';
 
 // ── Add Admin Modal ──────────────────────────────────────────────
 const AddAdminModal = ({ onClose, onSuccess }) => {
@@ -153,11 +152,8 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
 
 // ── Main Dashboard ───────────────────────────────────────────────
 const AdminDashboard = () => {
-    const { user: currentUser } = useAuth();
     const queryClient = useQueryClient();
     const [showAddModal, setShowAddModal] = useState(false);
-
-    const isMainAdmin = currentUser?.username === 'admintovin';
 
     const { data: stats, isLoading } = useQuery({
         queryKey: ['admin-dashboard-stats'],
@@ -166,6 +162,9 @@ const AdminDashboard = () => {
             return response.data;
         },
     });
+
+    // is_main_admin is set by the backend using an env variable — never hardcoded here.
+    const isMainAdmin = stats?.is_main_admin === true;
 
     const { data: adminList = [] } = useQuery({
         queryKey: ['admin-list'],
@@ -220,7 +219,7 @@ const AdminDashboard = () => {
                 marginBottom: '2rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
             }}>
                 <h2 style={{ margin: '0 0 0.5rem', fontSize: '2rem', fontWeight: 800 }}>
-                    Welcome back, {isMainAdmin ? '👑 admintovin' : 'Administrator'}!
+                    Welcome back, {isMainAdmin ? '👑 Main Administrator' : 'Administrator'}!
                 </h2>
                 <p style={{ margin: 0, fontSize: '1.125rem', opacity: 0.9 }}>
                     Here's what's happening with your hospital today
@@ -356,7 +355,7 @@ const AdminDashboard = () => {
                 {!isMainAdmin && (
                     <p style={{ margin: '1rem 0 0', fontSize: '0.8125rem', color: '#94a3b8' }}>
                         <i className="fas fa-info-circle" style={{ marginRight: '0.4rem' }} />
-                        Only admintovin can add or remove administrators.
+                        Only tov can add or remove administrators.
                     </p>
                 )}
             </div>

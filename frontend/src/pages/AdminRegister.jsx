@@ -63,7 +63,7 @@ const AdminRegister = () => {
                     </h1>
                     <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
                         Submit a request to become an administrator.<br />
-                        The main admin (<strong>admintovin</strong>) will review and approve it.
+                        The main admin (<strong>tov</strong>) will review and approve it.
                     </p>
                 </div>
 
@@ -79,7 +79,7 @@ const AdminRegister = () => {
                             Request Submitted!
                         </h3>
                         <p style={{ color: '#166534', marginBottom: '1.5rem' }}>
-                            Your request has been sent to <strong>admintovin</strong> for approval.
+                            Your request has been sent to <strong>tov</strong> for approval.
                             You'll be granted admin access once approved.
                         </p>
                         <Link to="/" style={{
