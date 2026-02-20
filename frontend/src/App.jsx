@@ -26,6 +26,7 @@ const AdminBookings = lazy(() => import('./pages/admin/AdminBookings'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
 const AdminLeaves = lazy(() => import('./pages/admin/AdminLeaves'));
+const AdminAdmins = lazy(() => import('./pages/admin/AdminAdmins'));
 
 // Simple loading spinner for page transitions
 const PageLoader = () => (
@@ -134,6 +135,11 @@ function App() {
                         <Route path="contacts" element={
                             <ProtectedRoute requireAdmin>
                                 <AdminContacts />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="admins" element={
+                            <ProtectedRoute requireAdmin>
+                                <AdminAdmins />
                             </ProtectedRoute>
                         } />
                         <Route index element={<Navigate to="/admin/dashboard" replace />} />

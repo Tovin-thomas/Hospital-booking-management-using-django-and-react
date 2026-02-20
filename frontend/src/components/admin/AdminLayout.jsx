@@ -14,6 +14,7 @@ const AdminLayout = ({ children }) => {
         { path: '/admin/leaves', icon: 'fas fa-calendar-times', label: 'Doctor Leaves' },
         { path: '/admin/users', icon: 'fas fa-users', label: 'Users' },
         { path: '/admin/contacts', icon: 'fas fa-envelope', label: 'Messages' },
+        { path: '/admin/admins', icon: 'fas fa-user-shield', label: 'Manage Admins' },
     ];
 
     const isActive = (path) => location.pathname === path;
