@@ -87,12 +87,20 @@ const AdminLogin = () => {
 
     const from = location.state?.from?.pathname || '/admin/dashboard';
 
-    // If already properly authenticated, go to dashboard
+    // If already properly authenticated as superuser, go straight to dashboard
     useEffect(() => {
         if (isAuthenticated && user?.is_superuser) {
             navigate('/admin/dashboard', { replace: true });
         }
     }, [isAuthenticated, user, navigate]);
+
+    // One-click session clear — wipes all stored tokens and reloads for a fresh start
+    const handleClearSession = () => {
+        sessionStorage.clear();
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.reload();
+    };
 
     const triggerShake = () => {
         setShake(true);
@@ -403,6 +411,41 @@ const AdminLogin = () => {
                         }}>
                             Go to patient login →
                         </Link>
+
+                        {/* Session clear helper — fixes stale token / redirect loop issues */}
+                        <div style={{
+                            marginTop: '1rem',
+                            paddingTop: '1rem',
+                            borderTop: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.75rem', margin: '0 0 0.4rem' }}>
+                                Stuck in a redirect loop or can't reach the login form?
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleClearSession}
+                                style={{
+                                    background: 'none',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: '0.5rem',
+                                    color: 'rgba(255,255,255,0.4)',
+                                    fontSize: '0.75rem',
+                                    padding: '0.35rem 0.875rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                }}
+                                onMouseEnter={e => {
+                                    e.target.style.borderColor = 'rgba(255,255,255,0.3)';
+                                    e.target.style.color = 'rgba(255,255,255,0.7)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+                                    e.target.style.color = 'rgba(255,255,255,0.4)';
+                                }}
+                            >
+                                🔄 Clear session &amp; reload
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
