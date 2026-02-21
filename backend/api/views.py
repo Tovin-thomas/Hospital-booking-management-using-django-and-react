@@ -139,8 +139,10 @@ class DoctorViewSet(viewsets.ModelViewSet):
     ordering_fields = ['doc_name']
     ordering = ['doc_name']
 
-    # Cache public doctor list for 5 minutes
+    # Cache public doctor list for 5 minutes, keyed per Authorization header
+    # (without vary_on_headers, all users share one cache entry — admins get 403)
     @method_decorator(cache_page(60 * 5))
+    @method_decorator(vary_on_headers('Authorization'))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 

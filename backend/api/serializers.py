@@ -199,7 +199,7 @@ class DoctorListSerializer(serializers.ModelSerializer):
 class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating doctors with user accounts"""
     username = serializers.CharField(write_only=True, required=False)
-    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     email = serializers.EmailField(write_only=True, required=False)
     department_id = serializers.PrimaryKeyRelatedField(
         queryset=Departments.objects.all(),
@@ -238,6 +238,14 @@ class DoctorCreateUpdateSerializer(serializers.ModelSerializer):
             return None
     
     def validate(self, attrs):
+        # Strip blank password — empty string means "keep existing", not a new password
+        if 'password' in attrs and attrs['password'] == '':
+            attrs.pop('password')
+
+        # Enforce minimum password length only when a new password is actually provided
+        if attrs.get('password') and len(attrs['password']) < 8:
+            raise serializers.ValidationError({'password': 'Password must be at least 8 characters'})
+
         # For creation, require user credentials
         if not self.instance:  # Creating new doctor
             if not attrs.get('username'):
