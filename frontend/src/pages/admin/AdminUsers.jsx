@@ -122,19 +122,17 @@ const AdminUsers = () => {
         return result;
     }, [usersList, bookingsList, searchTerm]);
 
-    if (isLoadingUsers || isLoadingBookings) return <AdminLayout><Loading text="Loading patients..." /></AdminLayout>;
+    if (isLoadingUsers || isLoadingBookings) return <Loading text="Loading patients..." />;
 
     if (usersError) return (
-        <AdminLayout>
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#ef4444' }}>
-                <h3>Error Loading Users</h3>
-                <p>{usersError.message}</p>
-            </div>
-        </AdminLayout>
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#ef4444' }}>
+            <h3>Error Loading Users</h3>
+            <p>{usersError.message}</p>
+        </div>
     );
 
     return (
-        <AdminLayout>
+        <>
             {/* Header */}
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -250,7 +248,7 @@ const AdminUsers = () => {
                     </div>
                 </div>
             )}
-        </AdminLayout>
+        </>
     );
 };
 

@@ -49,10 +49,10 @@ const AdminBookings = () => {
         { label: 'Completed', value: 'completed', color: '#3b82f6' },
     ];
 
-    if (isLoading) return <AdminLayout><Loading text="Loading bookings..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading bookings..." />;
 
     return (
-        <AdminLayout>
+        <>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
@@ -246,7 +246,7 @@ const AdminBookings = () => {
                     </table>
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 };
 

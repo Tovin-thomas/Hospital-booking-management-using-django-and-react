@@ -50,10 +50,10 @@ const AdminDoctors = () => {
         return matchesSearch && matchesDept;
     });
 
-    if (isLoading) return <AdminLayout><Loading text="Loading doctors..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading doctors..." />;
 
     return (
-        <AdminLayout>
+        <>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -324,7 +324,7 @@ const AdminDoctors = () => {
                     }}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 };
 

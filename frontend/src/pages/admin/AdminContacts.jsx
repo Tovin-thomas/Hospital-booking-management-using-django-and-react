@@ -64,7 +64,7 @@ const AdminContacts = () => {
         markReadMutation.mutate(id);
     };
 
-    if (isLoading) return <AdminLayout><Loading text="Loading messages..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading messages..." />;
 
     const filteredMessages = messages?.filter(msg =>
         msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,7 +75,7 @@ const AdminContacts = () => {
     const unreadCount = messages?.filter(m => !m.is_read).length || 0;
 
     return (
-        <AdminLayout>
+        <>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.875rem', fontWeight: 700, color: '#1e293b' }}>
@@ -485,7 +485,7 @@ const AdminContacts = () => {
                     </div>
                 </div>
             )}
-        </AdminLayout>
+        </>
     );
 };
 

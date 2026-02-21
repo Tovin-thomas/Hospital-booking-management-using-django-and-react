@@ -199,10 +199,10 @@ const AdminAdmins = () => {
         }
     };
 
-    if (isLoading) return <AdminLayout><Loading text="Loading admins..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading admins..." />;
 
     return (
-        <AdminLayout>
+        <>
             {showAddModal && (
                 <AddAdminModal
                     onClose={() => setShowAddModal(false)}
@@ -363,7 +363,7 @@ const AdminAdmins = () => {
                     </p>
                 )}
             </div>
-        </AdminLayout>
+        </>
     );
 };
 

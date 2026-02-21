@@ -39,7 +39,7 @@ const AdminLeaves = () => {
         }
     });
 
-    if (isLoading) return <AdminLayout><Loading text="Loading leaves..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading leaves..." />;
 
     // Filter leaves
     const filteredLeaves = leaves?.filter(leave => {
@@ -109,7 +109,7 @@ const AdminLeaves = () => {
     };
 
     return (
-        <AdminLayout>
+        <>
             {/* Header with Add Leave Button */}
             <div style={{
                 display: 'flex',
@@ -409,7 +409,7 @@ const AdminLeaves = () => {
                     </div>
                 )}
             </div>
-        </AdminLayout>
+        </>
     );
 };
 

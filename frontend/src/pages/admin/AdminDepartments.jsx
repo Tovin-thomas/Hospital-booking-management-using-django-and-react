@@ -50,10 +50,10 @@ const AdminDepartments = () => {
         dept.dep_decription?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (isLoading) return <AdminLayout><Loading text="Loading departments..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading departments..." />;
 
     return (
-        <AdminLayout>
+        <>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -267,7 +267,7 @@ const AdminDepartments = () => {
                     />
                 )
             }
-        </AdminLayout >
+        </>
     );
 };
 

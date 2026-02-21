@@ -199,7 +199,7 @@ const AdminDashboard = () => {
     };
 
     // Show loading spinner INSIDE the layout (not a blank page)
-    if (isLoading) return <AdminLayout><Loading text="Loading dashboard..." /></AdminLayout>;
+    if (isLoading) return <Loading text="Loading dashboard..." />;
 
     const statCards = [
         { title: 'Total Doctors', value: stats?.total_doctors || 0, icon: 'fas fa-user-md', color: '#3b82f6', bgColor: '#dbeafe', link: '/admin/doctors' },
@@ -213,7 +213,7 @@ const AdminDashboard = () => {
     ];
 
     return (
-        <AdminLayout>
+        <>
             {showAddModal && (
                 <AddAdminModal
                     onClose={() => setShowAddModal(false)}
@@ -396,7 +396,7 @@ const AdminDashboard = () => {
                     ))}
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 };
 
