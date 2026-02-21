@@ -10,6 +10,7 @@ const Home = lazy(() => import('./pages/Home'));
 const About = lazy(() => import('./pages/About'));
 const Doctors = lazy(() => import('./pages/Doctors'));
 const Departments = lazy(() => import('./pages/Departments'));
+const DepartmentDetail = lazy(() => import('./pages/DepartmentDetail'));
 const Booking = lazy(() => import('./pages/Booking'));
 const MyBookings = lazy(() => import('./pages/MyBookings'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -57,6 +58,7 @@ function App() {
                         <Route path="about" element={<About />} />
                         <Route path="doctors" element={<Doctors />} />
                         <Route path="departments" element={<Departments />} />
+                        <Route path="departments/:id" element={<DepartmentDetail />} />
                         <Route path="contact" element={<Contact />} />
 
                         {/* Auth Routes - Redirect to dashboard if already logged in */}

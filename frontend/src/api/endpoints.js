@@ -80,6 +80,15 @@ const API_ENDPOINTS = {
         create: '/admins/create/',
         remove: (id) => `/admins/${id}/remove/`,
     },
+
+    // Department Blogs
+    departmentBlogs: {
+        list: '/department-blogs/',
+        create: '/department-blogs/',
+        detail: (id) => `/department-blogs/${id}/`,
+        update: (id) => `/department-blogs/${id}/`,
+        delete: (id) => `/department-blogs/${id}/`,
+    },
 };
 
 export default API_ENDPOINTS;

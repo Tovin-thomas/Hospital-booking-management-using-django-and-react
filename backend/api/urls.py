@@ -10,6 +10,7 @@ from .views import (
     DoctorAvailabilityViewSet, DoctorLeaveViewSet,
     GoogleLoginView,
     AdminListView, AdminCreateView, AdminRemoveView,
+    DepartmentBlogViewSet,
 )
 
 # Create router and register viewsets
@@ -21,6 +22,7 @@ router.register(r'contacts', ContactViewSet, basename='contact')
 router.register(r'doctor-availability', DoctorAvailabilityViewSet, basename='doctor-availability')
 router.register(r'doctor-leaves', DoctorLeaveViewSet, basename='doctor-leaves')
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'department-blogs', DepartmentBlogViewSet, basename='department-blog')
 
 urlpatterns = [
     # API Root

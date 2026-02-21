@@ -54,3 +54,20 @@ class DoctorLeave(models.Model):
 
     def __str__(self):
         return f"{self.doctor.doc_name} - {self.date}"
+
+
+class DepartmentBlog(models.Model):
+    department = models.ForeignKey(Departments, on_delete=models.CASCADE, related_name='blogs')
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    image = models.ImageField(upload_to='department_blogs', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Department Blog'
+        verbose_name_plural = 'Department Blogs'
+
+    def __str__(self):
+        return f"{self.department.dep_name} - {self.title}"

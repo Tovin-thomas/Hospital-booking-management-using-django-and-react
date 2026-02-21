@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave
+from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave, DepartmentBlog
 from bookings.models import Booking
 from core.models import Contact
 from datetime import date, time, datetime, timedelta
@@ -498,3 +498,34 @@ class ContactSerializer(serializers.ModelSerializer):
         model = Contact
         fields = ['id', 'name', 'email', 'subject', 'message', 'submitted_at', 'is_read']
         read_only_fields = ['id', 'submitted_at', 'is_read']
+
+
+# ===========================
+# Department Blog Serializers
+# ===========================
+
+class DepartmentBlogSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.dep_name', read_only=True)
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DepartmentBlog
+        fields = ['id', 'department', 'department_name', 'title', 'content', 'image', 'image_url', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'image': {'write_only': True, 'required': False},
+        }
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        try:
+            url = obj.image.url
+            if url.startswith('http'):
+                return url
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None

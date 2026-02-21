@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Departments, Doctors, DoctorAvailability, DoctorLeave
+from .models import Departments, Doctors, DoctorAvailability, DoctorLeave, DepartmentBlog
 
 class DoctorsAdmin(admin.ModelAdmin):
     list_display = ('id', 'doc_name', 'doc_spec', 'dep_name', 'user', 'image_preview')
@@ -36,3 +36,4 @@ admin.site.register(Departments)
 admin.site.register(Doctors, DoctorsAdmin)
 admin.site.register(DoctorAvailability)
 admin.site.register(DoctorLeave)
+admin.site.register(DepartmentBlog)

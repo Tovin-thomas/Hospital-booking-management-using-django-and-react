@@ -17,14 +17,15 @@ from django.conf import settings
 import requests
 from datetime import datetime, timedelta, date
 
-from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave
+from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave, DepartmentBlog
 from bookings.models import Booking
 from core.models import Contact
 from .serializers import (
     UserSerializer, UserRegistrationSerializer,
     DoctorSerializer, DoctorListSerializer, DoctorCreateUpdateSerializer,
     DepartmentSerializer, DoctorAvailabilitySerializer, DoctorLeaveSerializer,
-    BookingSerializer, BookingListSerializer, ContactSerializer
+    BookingSerializer, BookingListSerializer, ContactSerializer,
+    DepartmentBlogSerializer
 )
 from .permissions import IsOwnerOrAdmin, IsDoctorOrAdmin
 
@@ -841,3 +842,35 @@ class AdminRemoveView(APIView):
         user.delete()             # Permanently remove from database
 
         return Response({'message': f'Admin account "{username}" has been permanently deleted.'})
+
+
+# ===========================
+# Department Blog Views
+# ===========================
+
+class DepartmentBlogViewSet(viewsets.ModelViewSet):
+    """
+    CRUD operations for department blogs.
+    GET /api/department-blogs/ - List all blogs (public)
+    GET /api/department-blogs/?department={id} - List blogs for a department (public)
+    POST /api/department-blogs/ - Create blog (admin)
+    PUT /api/department-blogs/{id}/ - Update blog (admin)
+    DELETE /api/department-blogs/{id}/ - Delete blog (admin)
+    """
+    queryset = DepartmentBlog.objects.all().select_related('department')
+    serializer_class = DepartmentBlogSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['department']
+    search_fields = ['title', 'content']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+    def get_parsers(self):
+        """Support multipart form data for image uploads"""
+        from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+        return [MultiPartParser(), FormParser(), JSONParser()]
