@@ -5,10 +5,12 @@ import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { formatDate, formatTime } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminBookings = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const { user } = useAuth();
 
     const { data: bookings, isLoading } = useQuery({
         queryKey: ['admin-bookings', statusFilter],
@@ -20,6 +22,9 @@ const AdminBookings = () => {
             const response = await axios.get(url);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     const filteredBookings = bookings?.filter(booking =>
@@ -44,7 +49,7 @@ const AdminBookings = () => {
         { label: 'Completed', value: 'completed', color: '#3b82f6' },
     ];
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading bookings..." /></AdminLayout>;
 
     return (
         <AdminLayout>

@@ -5,12 +5,14 @@ import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminDepartments = () => {
     const [showModal, setShowModal] = useState(false);
     const [selectedDept, setSelectedDept] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const queryClient = useQueryClient();
+    const { user } = useAuth();
 
     const { data: departments, isLoading } = useQuery({
         queryKey: ['admin-departments'],
@@ -18,6 +20,9 @@ const AdminDepartments = () => {
             const response = await axios.get(API_ENDPOINTS.departments.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Delete Mutation
@@ -45,7 +50,7 @@ const AdminDepartments = () => {
         dept.dep_decription?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading departments..." /></AdminLayout>;
 
     return (
         <AdminLayout>

@@ -154,6 +154,7 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
 const AdminAdmins = () => {
     const queryClient = useQueryClient();
     const [showAddModal, setShowAddModal] = useState(false);
+    const { user } = useAuth();
 
     // Fetch dashboard stats — the server tells us if we are the main admin.
     // The frontend never hardcodes any username; it simply trusts the server's response.
@@ -163,6 +164,9 @@ const AdminAdmins = () => {
             const response = await axios.get(API_ENDPOINTS.dashboard.stats);
             return response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // is_main_admin is a boolean set by the backend based on an environment variable.
@@ -175,6 +179,9 @@ const AdminAdmins = () => {
             const response = await axios.get(API_ENDPOINTS.admins.list);
             return response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     const removeMutation = useMutation({
@@ -192,7 +199,7 @@ const AdminAdmins = () => {
         }
     };
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading admins..." /></AdminLayout>;
 
     return (
         <AdminLayout>

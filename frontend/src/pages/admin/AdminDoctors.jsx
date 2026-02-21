@@ -6,6 +6,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
 import { getImageUrl } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminDoctors = () => {
     const [showModal, setShowModal] = useState(false);
@@ -13,6 +14,7 @@ const AdminDoctors = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [deptFilter, setDeptFilter] = useState('all');
     const queryClient = useQueryClient();
+    const { user } = useAuth();
 
     const { data: doctors, isLoading } = useQuery({
         queryKey: ['admin-doctors'],
@@ -20,6 +22,9 @@ const AdminDoctors = () => {
             const response = await axios.get(API_ENDPOINTS.doctors.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     const { data: departments } = useQuery({
@@ -28,6 +33,9 @@ const AdminDoctors = () => {
             const response = await axios.get(API_ENDPOINTS.departments.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Filter Logic
@@ -42,7 +50,7 @@ const AdminDoctors = () => {
         return matchesSearch && matchesDept;
     });
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading doctors..." /></AdminLayout>;
 
     return (
         <AdminLayout>

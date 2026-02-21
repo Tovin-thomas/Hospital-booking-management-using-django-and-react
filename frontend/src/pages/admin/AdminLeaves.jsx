@@ -5,11 +5,13 @@ import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminLeaves = () => {
     const queryClient = useQueryClient();
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const { user } = useAuth();
 
     // Fetch all doctor leaves
     const { data: leaves, isLoading } = useQuery({
@@ -18,6 +20,9 @@ const AdminLeaves = () => {
             const response = await axios.get(API_ENDPOINTS.doctorLeaves.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Delete leave mutation
@@ -34,7 +39,7 @@ const AdminLeaves = () => {
         }
     });
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading leaves..." /></AdminLayout>;
 
     // Filter leaves
     const filteredLeaves = leaves?.filter(leave => {

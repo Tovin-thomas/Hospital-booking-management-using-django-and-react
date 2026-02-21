@@ -5,11 +5,13 @@ import axios from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminUsers = () => {
     const queryClient = useQueryClient();
     const [editingUser, setEditingUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const { user } = useAuth();
 
     // Fetch Users
     const { data: usersList, isLoading: isLoadingUsers, error: usersError } = useQuery({
@@ -18,6 +20,9 @@ const AdminUsers = () => {
             const response = await axios.get(API_ENDPOINTS.users.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Fetch Bookings
@@ -27,6 +32,9 @@ const AdminUsers = () => {
             const response = await axios.get(API_ENDPOINTS.bookings.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Mutations
@@ -114,7 +122,7 @@ const AdminUsers = () => {
         return result;
     }, [usersList, bookingsList, searchTerm]);
 
-    if (isLoadingUsers || isLoadingBookings) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoadingUsers || isLoadingBookings) return <AdminLayout><Loading text="Loading patients..." /></AdminLayout>;
 
     if (usersError) return (
         <AdminLayout>

@@ -6,6 +6,7 @@ import axios from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
+import { useAuth } from '../../context/AuthContext';
 
 // ── Add Admin Modal ──────────────────────────────────────────────
 const AddAdminModal = ({ onClose, onSuccess }) => {
@@ -153,6 +154,7 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
 // ── Main Dashboard ───────────────────────────────────────────────
 const AdminDashboard = () => {
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const [showAddModal, setShowAddModal] = useState(false);
 
     const { data: stats, isLoading } = useQuery({
@@ -161,6 +163,9 @@ const AdminDashboard = () => {
             const response = await axios.get(API_ENDPOINTS.dashboard.stats);
             return response.data;
         },
+        enabled: !!user,   // only run when user is authenticated
+        retry: 2,           // retry up to 2 times on transient 401s
+        staleTime: 30_000,  // treat data as fresh for 30s to avoid refetch flash
     });
 
     // is_main_admin is set by the backend using an env variable — never hardcoded here.
@@ -172,6 +177,9 @@ const AdminDashboard = () => {
             const response = await axios.get(API_ENDPOINTS.admins.list);
             return response.data;
         },
+        enabled: !!user,
+        retry: 2,
+        staleTime: 30_000,
     });
 
     // Remove admin mutation (main admin only)
@@ -190,7 +198,8 @@ const AdminDashboard = () => {
         }
     };
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    // Show loading spinner INSIDE the layout (not a blank page)
+    if (isLoading) return <AdminLayout><Loading text="Loading dashboard..." /></AdminLayout>;
 
     const statCards = [
         { title: 'Total Doctors', value: stats?.total_doctors || 0, icon: 'fas fa-user-md', color: '#3b82f6', bgColor: '#dbeafe', link: '/admin/doctors' },

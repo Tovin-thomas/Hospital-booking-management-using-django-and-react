@@ -6,9 +6,11 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import Loading from '../../components/common/Loading';
 import { formatDate } from '../../utils/formatters';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminContacts = () => {
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const [selectedMessage, setSelectedMessage] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -19,6 +21,9 @@ const AdminContacts = () => {
             const response = await axios.get(API_ENDPOINTS.contacts.list);
             return response.data.results || response.data;
         },
+        enabled: !!user,   // only run when user is authenticated
+        retry: 2,           // retry on transient 401s after login
+        staleTime: 30_000,  // keep data fresh for 30s — no refetch flash on navigation
     });
 
     // Delete mutation
@@ -59,7 +64,7 @@ const AdminContacts = () => {
         markReadMutation.mutate(id);
     };
 
-    if (isLoading) return <AdminLayout><Loading /></AdminLayout>;
+    if (isLoading) return <AdminLayout><Loading text="Loading messages..." /></AdminLayout>;
 
     const filteredMessages = messages?.filter(msg =>
         msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
