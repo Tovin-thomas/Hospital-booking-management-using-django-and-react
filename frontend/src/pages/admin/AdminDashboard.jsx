@@ -165,7 +165,7 @@ const AdminDashboard = () => {
         },
         enabled: !!user,   // only run when user is authenticated
         retry: 2,           // retry up to 2 times on transient 401s
-        staleTime: 30_000,  // treat data as fresh for 30s to avoid refetch flash
+        refetchOnMount: true,
     });
 
     // is_main_admin is set by the backend using an env variable — never hardcoded here.
@@ -179,7 +179,7 @@ const AdminDashboard = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     // Remove admin mutation (main admin only)

@@ -24,7 +24,7 @@ const AdminDoctors = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     const { data: departments } = useQuery({
@@ -35,7 +35,7 @@ const AdminDoctors = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     // Filter Logic

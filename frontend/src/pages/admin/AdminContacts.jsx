@@ -23,7 +23,7 @@ const AdminContacts = () => {
         },
         enabled: !!user,   // only run when user is authenticated
         retry: 2,           // retry on transient 401s after login
-        staleTime: 30_000,  // keep data fresh for 30s — no refetch flash on navigation
+        refetchOnMount: true,
     });
 
     // Delete mutation

@@ -24,7 +24,7 @@ const AdminBookings = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     const filteredBookings = bookings?.filter(booking =>

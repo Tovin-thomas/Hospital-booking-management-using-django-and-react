@@ -166,7 +166,7 @@ const AdminAdmins = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     // is_main_admin is a boolean set by the backend based on an environment variable.
@@ -181,7 +181,7 @@ const AdminAdmins = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     const removeMutation = useMutation({

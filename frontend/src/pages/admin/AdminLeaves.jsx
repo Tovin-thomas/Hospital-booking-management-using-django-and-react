@@ -22,7 +22,7 @@ const AdminLeaves = () => {
         },
         enabled: !!user,
         retry: 2,
-        staleTime: 30_000,
+        refetchOnMount: true,
     });
 
     // Delete leave mutation
