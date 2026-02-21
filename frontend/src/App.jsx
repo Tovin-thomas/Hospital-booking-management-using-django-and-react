@@ -1,9 +1,10 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import DoctorLayout from './components/layout/DoctorLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import PublicRoute from './components/common/PublicRoute';
+import AdminLayout from './components/admin/AdminLayout';
 
 // Lazy load all pages - only loads code when the page is visited
 const Home = lazy(() => import('./pages/Home'));
@@ -46,6 +47,17 @@ const PageLoader = () => (
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
 );
+
+// AdminLayoutWrapper — mounts AdminLayout ONCE and renders child pages inside it.
+// This is the key fix: the layout never unmounts when navigating between admin pages.
+const AdminLayoutWrapper = () => (
+    <AdminLayout>
+        <Suspense fallback={<div style={{ padding: '2rem', color: '#64748b' }}>Loading page...</div>}>
+            <Outlet />
+        </Suspense>
+    </AdminLayout>
+);
+
 
 function App() {
     return (
@@ -102,48 +114,25 @@ function App() {
                         </ProtectedRoute>
                     } />
 
-                    {/* Admin Panel Routes */}
-                    <Route path="/admin">
-                        <Route path="dashboard" element={
+                    {/* Admin Panel — single ProtectedRoute wraps entire admin section.
+                         AdminLayoutWrapper mounts AdminLayout ONCE; child routes render
+                         via <Outlet> without ever unmounting the sidebar/layout. */}
+                    <Route
+                        path="/admin"
+                        element={
                             <ProtectedRoute requireAdmin>
-                                <AdminDashboard />
+                                <AdminLayoutWrapper />
                             </ProtectedRoute>
-                        } />
-                        <Route path="doctors" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminDoctors />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="departments" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminDepartments />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="bookings" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminBookings />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="leaves" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminLeaves />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="users" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminUsers />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="contacts" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminContacts />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="admins" element={
-                            <ProtectedRoute requireAdmin>
-                                <AdminAdmins />
-                            </ProtectedRoute>
-                        } />
+                        }
+                    >
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="doctors" element={<AdminDoctors />} />
+                        <Route path="departments" element={<AdminDepartments />} />
+                        <Route path="bookings" element={<AdminBookings />} />
+                        <Route path="leaves" element={<AdminLeaves />} />
+                        <Route path="users" element={<AdminUsers />} />
+                        <Route path="contacts" element={<AdminContacts />} />
+                        <Route path="admins" element={<AdminAdmins />} />
                         <Route index element={<Navigate to="/admin/dashboard" replace />} />
                     </Route>
 
