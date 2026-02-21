@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { tokenStore } from '../api/axios'; // direct token wipe — no React state side-effects
 
 // ── Maps raw server/client errors to friendly messages ────────────────────────
 const getErrorInfo = (rawError, isNotAdmin = false) => {
@@ -75,7 +76,7 @@ const ERROR_COLORS = {
 const AdminLogin = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, logout, user, isAuthenticated } = useAuth();
+    const { login, user, isAuthenticated } = useAuth(); // logout removed intentionally
 
     const [formData, setFormData] = useState({ username: '', password: '' });
     const [errorInfo, setErrorInfo] = useState(
@@ -87,15 +88,14 @@ const AdminLogin = () => {
 
     const from = location.state?.from?.pathname || '/admin/dashboard';
 
-    // ── Auto-clear stale session on every page load ────────────────────────────
-    // Runs ONCE when the component mounts (empty deps []).
-    // Silently wipes any leftover tokens so the admin never gets trapped in a
-    // redirect loop due to an old/expired session — no manual action needed.
+    // ── Silently wipe stale tokens on every page load ───────────────────────────
+    // Uses tokenStore.clearAll() directly — NOT AuthContext.logout().
+    // AuthContext.logout() would call setUser(null), resetting React auth state
+    // globally and causing a blank-page flash on every subsequent navigation.
+    // tokenStore.clearAll() only wipes the raw storage values, with zero
+    // side-effects on React state, so auth context stays intact after login.
     useEffect(() => {
-        sessionStorage.removeItem('refresh_token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        logout(); // also clears the in-memory access token
+        tokenStore.clearAll(); // clears memory + sessionStorage + old localStorage silently
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const triggerShake = () => {
@@ -122,8 +122,8 @@ const AdminLogin = () => {
                 // ✅ Valid admin — go to dashboard
                 navigate(from, { replace: true });
             } else {
-                // ✅ Credentials correct but NOT an admin
-                logout();
+                // ✅ Credentials correct but NOT an admin — silently clear tokens
+                tokenStore.clearAll();
                 setErrorInfo(getErrorInfo(null, true));
                 triggerShake();
                 setLoading(false);
