@@ -1,6 +1,8 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from doctors.models import Doctors
+
 
 class Booking(models.Model):
     STATUS_CHOICES = [
@@ -19,6 +21,26 @@ class Booking(models.Model):
     appointment_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     booked_on = models.DateField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            # ── Rule 1: One patient, one active booking per doctor per date ──
+            # A partial unique index: only rows where status is pending/accepted
+            # are checked. Cancelled/completed bookings are ignored, so the
+            # patient can re-book after cancellation.
+            models.UniqueConstraint(
+                fields=['user', 'doc_name', 'booking_date'],
+                condition=Q(status__in=['pending', 'accepted']),
+                name='unique_active_booking_per_user_doctor_date',
+            ),
+            # ── Rule 2: One doctor, one active booking per time slot ──
+            # Prevents double-booking a doctor at the same time on the same day.
+            models.UniqueConstraint(
+                fields=['doc_name', 'booking_date', 'appointment_time'],
+                condition=Q(status__in=['pending', 'accepted']),
+                name='unique_active_slot_per_doctor_date_time',
+            ),
+        ]
 
     @property
     def formatted_date(self):

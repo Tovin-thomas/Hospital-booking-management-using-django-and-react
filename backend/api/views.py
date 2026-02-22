@@ -16,6 +16,7 @@ from django.utils.decorators import method_decorator
 from django.conf import settings
 import requests
 from datetime import datetime, timedelta, date
+from django.db import IntegrityError
 
 from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave, DepartmentBlog
 from bookings.models import Booking
@@ -315,6 +316,33 @@ class BookingViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return BookingListSerializer
         return BookingSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to handle DB-level UniqueConstraint violations.
+        The Booking model enforces:
+          • One active booking per patient per doctor per date
+          • One active booking per doctor per time slot
+        Both are partial unique indexes in PostgreSQL; if violated Django
+        raises IntegrityError which we turn into a clean 400 response.
+        """
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError as e:
+            err_str = str(e).lower()
+            if 'unique_active_booking_per_user_doctor_date' in err_str:
+                msg = (
+                    'You already have an active appointment with this doctor on '
+                    'the selected date. Please choose a different date.'
+                )
+            elif 'unique_active_slot_per_doctor_date_time' in err_str:
+                msg = (
+                    'This time slot has just been booked by someone else. '
+                    'Please choose another slot.'
+                )
+            else:
+                msg = 'This booking conflicts with an existing one. Please try a different date or time.'
+            return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):

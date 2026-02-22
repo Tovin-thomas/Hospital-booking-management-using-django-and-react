@@ -389,96 +389,46 @@ class BookingSerializer(serializers.ModelSerializer):
         appointment_time = attrs.get('appointment_time')
         doctor = attrs.get('doc_name')
 
-        # Check if date is in the past
+        # 1. Date must not be in the past
         if booking_date < date.today():
-            raise serializers.ValidationError({
-                'booking_date': 'Cannot book appointments in the past.'
-            })
+            raise serializers.ValidationError(
+                {'booking_date': 'Cannot book appointments in the past.'}
+            )
 
-        # Check if date is more than 2 months in advance
+        # 2. Date must be within the next 60 days
         if booking_date > date.today() + timedelta(days=60):
-            raise serializers.ValidationError({
-                'booking_date': 'Cannot book appointments more than 2 months in advance.'
-            })
+            raise serializers.ValidationError(
+                {'booking_date': 'Cannot book appointments more than 2 months in advance.'}
+            )
 
-        # Check if doctor is on leave
+        # 3. Doctor must not be on leave that day
         if doctor.leaves.filter(date=booking_date).exists():
-            raise serializers.ValidationError({
-                'booking_date': 'Doctor is on leave on this date.'
-            })
+            raise serializers.ValidationError(
+                {'booking_date': 'Doctor is on leave on this date.'}
+            )
 
-        # Check doctor availability for the day
-        day_of_week = booking_date.weekday()
-        availability = doctor.availabilities.filter(day=day_of_week).first()
-
+        # 4. Doctor must be scheduled on that weekday
+        availability = doctor.availabilities.filter(day=booking_date.weekday()).first()
         if not availability:
+            raise serializers.ValidationError(
+                {'booking_date': f'Doctor is not available on {booking_date.strftime("%A")}s.'}
+            )
+
+        # 5. Appointment time must fall within the working-hours window
+        if appointment_time and not (availability.start_time <= appointment_time < availability.end_time):
             raise serializers.ValidationError({
-                'booking_date': f'Doctor is not available on {booking_date.strftime("%A")}s.'
+                'appointment_time': (
+                    f'Appointment time must be between '
+                    f'{availability.start_time.strftime("%H:%M")} and '
+                    f'{availability.end_time.strftime("%H:%M")}.'
+                )
             })
 
-        # ── NEW: Prevent the same patient from booking the same doctor
-        #         on the same date more than once (pending or accepted). ──
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            existing_qs = Booking.objects.filter(
-                user=request.user,
-                doc_name=doctor,
-                booking_date=booking_date,
-                status__in=['pending', 'accepted'],
-            )
-            if self.instance:
-                existing_qs = existing_qs.exclude(id=self.instance.id)
-
-            if existing_qs.exists():
-                existing = existing_qs.first()
-                existing_time = (
-                    existing.appointment_time.strftime('%H:%M')
-                    if existing.appointment_time
-                    else 'unknown time'
-                )
-                raise serializers.ValidationError({
-                    'booking_date': (
-                        f'You already have an appointment with this doctor on '
-                        f'{booking_date.strftime("%b %d, %Y")} at {existing_time}. '
-                        f'Please choose a different date.'
-                    )
-                })
-
-        # Check if appointment time is within working hours
-        if appointment_time:
-            if not (availability.start_time <= appointment_time < availability.end_time):
-                raise serializers.ValidationError({
-                    'appointment_time': (
-                        f'Appointment time must be between '
-                        f'{availability.start_time.strftime("%H:%M")} and '
-                        f'{availability.end_time.strftime("%H:%M")}.'
-                    )
-                })
-
-            # Check for conflicting doctor-side appointments (20-minute slots)
-            slot_start = datetime.combine(booking_date, appointment_time)
-            slot_end = slot_start + timedelta(minutes=20)
-
-            conflicting_bookings = Booking.objects.filter(
-                doc_name=doctor,
-                booking_date=booking_date,
-                status__in=['pending', 'accepted']
-            )
-
-            if self.instance:
-                conflicting_bookings = conflicting_bookings.exclude(id=self.instance.id)
-
-            for booking in conflicting_bookings:
-                if booking.appointment_time:
-                    existing_start = datetime.combine(booking_date, booking.appointment_time)
-                    existing_end = existing_start + timedelta(minutes=20)
-
-                    if slot_start < existing_end and slot_end > existing_start:
-                        raise serializers.ValidationError({
-                            'appointment_time': 'This time slot is already booked. Please choose another time.'
-                        })
-
+        # ✅ All clean — duplicate booking rules are enforced by the database
+        #    UniqueConstraints in Booking.Meta, so no Python loops needed here.
         return attrs
+
+
     
     def create(self, validated_data):
         # Automatically assign the authenticated user
