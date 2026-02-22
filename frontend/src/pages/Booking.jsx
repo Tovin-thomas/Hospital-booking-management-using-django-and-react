@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from '../api/axios';
@@ -86,10 +86,26 @@ const Legend = () => (
     </div>
 );
 
-/* ─── Today's date in YYYY-MM-DD (local time, not UTC) ─────── */
+/* ─── Date helpers ────────────────────────────────────── */
 const todayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/* Walk forward from today (inclusive) to find the nearest day the
+   doctor actually works. Returns a YYYY-MM-DD string or todayStr(). */
+const getFirstAvailableDate = (availabilities = []) => {
+    if (!availabilities.length) return todayStr();
+    const DAY_NUM_MAP = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 0 };
+    const availDayNums = new Set(availabilities.map(a => DAY_NUM_MAP[a.day_display]));
+    const d = new Date();
+    for (let i = 0; i < 62; i++) {         // check up to 62 days ahead
+        if (availDayNums.has(d.getDay())) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        d.setDate(d.getDate() + 1);
+    }
+    return todayStr();                      // fallback — should never happen
 };
 
 /* ─── Available-days strip ───────────────────────────────────── */
@@ -145,8 +161,8 @@ const AvailableDaysStrip = ({ availabilities }) => {
                                     : isAvail ? '#1d4ed8'
                                         : '#94a3b8',
                                 border: `1.5px solid ${isAvail && isToday ? '#86efac'
-                                        : isAvail ? '#93c5fd'
-                                            : '#e2e8f0'
+                                    : isAvail ? '#93c5fd'
+                                        : '#e2e8f0'
                                     }`,
                                 position: 'relative',
                             }}
@@ -177,12 +193,150 @@ const AvailableDaysStrip = ({ availabilities }) => {
     );
 };
 
+/* ─── UnavailableCard ─────────────────────────────────────────────────
+   Shows why the doctor is unavailable and suggests the NEXT 3 available
+   dates so the user can pick one with a single click.
+ ───────────────────────────────────────────────────────────────────── */
+const DAY_NUM = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 0 };
+
+function getNextAvailableDates(availabilities = [], fromDate, count = 3) {
+    if (!availabilities.length) return [];
+    const availDayNums = new Set(availabilities.map(a => DAY_NUM[a.day_display]));
+    const results = [];
+    const d = new Date(fromDate);
+    d.setDate(d.getDate() + 1);           // start from tomorrow
+    const limit = new Date(fromDate);
+    limit.setDate(limit.getDate() + 61);  // don't exceed the 60-day booking window
+
+    while (results.length < count && d < limit) {
+        if (availDayNums.has(d.getDay())) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const avail = availabilities.find(a => DAY_NUM[a.day_display] === d.getDay());
+            results.push({
+                dateStr: `${yyyy}-${mm}-${dd}`,
+                label: d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
+                hours: avail ? `${avail.start_time.slice(0, 5)}–${avail.end_time.slice(0, 5)}` : '',
+            });
+        }
+        d.setDate(d.getDate() + 1);
+    }
+    return results;
+}
+
+const UnavailableCard = ({ reason, availabilities, currentDate, onPickDate }) => {
+    const nextDates = getNextAvailableDates(availabilities, currentDate);
+
+    return (
+        <div style={{
+            marginTop: '0.75rem',
+            borderRadius: '1rem',
+            overflow: 'hidden',
+            border: '1.5px solid #fca5a5',
+        }}>
+            {/* ── Top red header banner ── */}
+            <div style={{
+                background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                padding: '1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+            }}>
+                <div style={{
+                    width: 44, height: 44,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                }}>
+                    <i className="fas fa-calendar-times" style={{ fontSize: '1.2rem', color: 'white' }} />
+                </div>
+                <div>
+                    <h4 style={{ margin: 0, color: 'white', fontWeight: 700, fontSize: '1rem' }}>
+                        Doctor Unavailable
+                    </h4>
+                    <p style={{ margin: '0.2rem 0 0', color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>
+                        {reason || 'Not scheduled on the selected date'}
+                    </p>
+                </div>
+            </div>
+
+            {/* ── Bottom suggestion area ── */}
+            <div style={{
+                background: '#fff7f7',
+                padding: '1.1rem 1.25rem',
+            }}>
+                {nextDates.length > 0 ? (
+                    <>
+                        <p style={{
+                            margin: '0 0 0.85rem',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            color: '#64748b',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                        }}>
+                            <i className="fas fa-lightbulb" style={{ color: '#f59e0b', marginRight: '0.4rem' }} />
+                            Next available slots — click to switch date
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                            {nextDates.map(({ dateStr, label, hours }) => (
+                                <button
+                                    key={dateStr}
+                                    type="button"
+                                    onClick={() => onPickDate(dateStr)}
+                                    style={{
+                                        padding: '0.55rem 1rem',
+                                        borderRadius: '0.65rem',
+                                        border: '1.5px solid #bfdbfe',
+                                        background: 'white',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'all 0.18s ease',
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.background = '#eff6ff';
+                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.background = 'white';
+                                        e.currentTarget.style.borderColor = '#bfdbfe';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
+                                        {label}
+                                    </div>
+                                    {hours && (
+                                        <div style={{ fontSize: '0.72rem', color: '#2563eb', marginTop: '0.15rem' }}>
+                                            <i className="fas fa-clock" style={{ marginRight: '0.25rem' }} />
+                                            {hours}
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.875rem' }}>
+                        <i className="fas fa-info-circle" style={{ marginRight: '0.4rem' }} />
+                        No available slots found in the next 60 days. Please contact the hospital directly.
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
 /* ═══════════════════════════════════════════════════════════════════ */
 
 const Booking = () => {
     const { doctorId } = useParams();
     const navigate = useNavigate();
-    const [selectedDate, setSelectedDate] = useState(todayStr);  // ← default today
+    const [selectedDate, setSelectedDate] = useState(todayStr);  // refined after doctor loads
     const [selectedTime, setSelectedTime] = useState('');
 
     /* ── Doctor details ── */
@@ -193,6 +347,15 @@ const Booking = () => {
             return res.data;
         },
     });
+
+    /* ── Once doctor loads, jump to the nearest working day ── */
+    useEffect(() => {
+        if (doctor?.availabilities) {
+            const best = getFirstAvailableDate(doctor.availabilities);
+            setSelectedDate(best);
+            setSelectedTime('');
+        }
+    }, [doctor?.id]);               // run once per doctor, not on every render
 
     /* ── All slots for selected date (available + booked) ── */
     const { data: slotsData, isLoading: slotsLoading, error: slotsError } = useQuery({
@@ -368,19 +531,13 @@ const Booking = () => {
                                         <Legend />
                                     </div>
                                 ) : (
-                                    /* Doctor unavailable */
-                                    <div style={{ padding: '1.5rem', background: '#fef2f2', border: '2px solid #fecaca', borderRadius: '0.75rem', display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
-                                        <div style={{ width: 48, height: 48, background: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <i className="fas fa-calendar-times" style={{ fontSize: '1.25rem', color: '#dc2626' }} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem' }}>Doctor Unavailable</h4>
-                                            <p style={{ margin: 0, color: '#7f1d1d' }}>{slotsData?.reason}</p>
-                                            <p style={{ margin: '0.5rem 0 0', color: '#991b1b', fontSize: '0.875rem', fontStyle: 'italic' }}>
-                                                Please select a different date.
-                                            </p>
-                                        </div>
-                                    </div>
+                                    /* ── Doctor unavailable — premium UX ── */
+                                    <UnavailableCard
+                                        reason={slotsData?.reason}
+                                        availabilities={doctor?.availabilities}
+                                        currentDate={selectedDate}
+                                        onPickDate={(d) => { setSelectedDate(d); setSelectedTime(''); }}
+                                    />
                                 )}
                             </div>
                         )}
