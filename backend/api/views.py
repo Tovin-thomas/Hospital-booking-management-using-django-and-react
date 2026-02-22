@@ -13,10 +13,12 @@ from django.db.models import Count, Prefetch, Q
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.utils.decorators import method_decorator
+from django.core.cache import cache
 from django.conf import settings
 import requests
 from datetime import datetime, timedelta, date
 from django.db import IntegrityError
+
 
 from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave, DepartmentBlog
 from bookings.models import Booking
@@ -101,10 +103,34 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     ordering_fields = ['dep_name']
     ordering = ['dep_name']
 
-    # Cache public list for 5 minutes — departments change very rarely
-    @method_decorator(cache_page(60 * 5))
+    DEPT_CACHE_KEY = 'departments_list'
+
+    # Cache the list response manually so we can invalidate it on writes.
+    # cache_page() cannot be invalidated, so a new department would stay hidden
+    # for 5 minutes — this fixes that.
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        cached = cache.get(self.DEPT_CACHE_KEY)
+        if cached is not None:
+            return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        cache.set(self.DEPT_CACHE_KEY, response.data, 60 * 5)
+        return response
+
+    def _invalidate_cache(self):
+        """Clear the departments list cache so the next GET returns fresh data."""
+        cache.delete(self.DEPT_CACHE_KEY)
+
+    def perform_create(self, serializer):
+        serializer.save()
+        self._invalidate_cache()
+
+    def perform_update(self, serializer):
+        serializer.save()
+        self._invalidate_cache()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        self._invalidate_cache()
 
     def get_permissions(self):
         """Allow public read access, but require admin for write access"""
