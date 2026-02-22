@@ -103,34 +103,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     ordering_fields = ['dep_name']
     ordering = ['dep_name']
 
-    DEPT_CACHE_KEY = 'departments_list'
-
-    # Cache the list response manually so we can invalidate it on writes.
-    # cache_page() cannot be invalidated, so a new department would stay hidden
-    # for 5 minutes — this fixes that.
-    def list(self, request, *args, **kwargs):
-        cached = cache.get(self.DEPT_CACHE_KEY)
-        if cached is not None:
-            return Response(cached)
-        response = super().list(request, *args, **kwargs)
-        cache.set(self.DEPT_CACHE_KEY, response.data, 60 * 5)
-        return response
-
-    def _invalidate_cache(self):
-        """Clear the departments list cache so the next GET returns fresh data."""
-        cache.delete(self.DEPT_CACHE_KEY)
-
-    def perform_create(self, serializer):
-        serializer.save()
-        self._invalidate_cache()
-
-    def perform_update(self, serializer):
-        serializer.save()
-        self._invalidate_cache()
-
-    def perform_destroy(self, instance):
-        instance.delete()
-        self._invalidate_cache()
+    # No caching here — departments are a small list and the locmem cache
+    # is per gunicorn worker, so invalidation across workers is unreliable.
+    # Direct DB queries for this endpoint are fast enough.
 
     def get_permissions(self):
         """Allow public read access, but require admin for write access"""
