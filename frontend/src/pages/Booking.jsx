@@ -7,12 +7,9 @@ import Loading from '../components/common/Loading';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
-/* ─── Slot colour legend ──────────────────────────────────────────────
-   ●  Teal / green  →  available
-   ●  Red  (muted)  →  booked / unavailable
-   ●  Blue (solid)  →  your current selection
+/* ─── Slot colour palette ─────────────────────────────────────────────
+   Green   → available     Red (muted) → booked     Blue → selected
  ─────────────────────────────────────────────────────────────────── */
-
 const SLOT_STYLES = {
     available: {
         background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
@@ -39,15 +36,15 @@ const SLOT_STYLES = {
     },
 };
 
-const SlotButton = ({ slot, isSelected, onClick }) => {
+const SlotButton = ({ slot, isSelected, onClick, disabled }) => {
     const styleKey = isSelected ? 'selected' : slot.status;
     const base = SLOT_STYLES[styleKey] || SLOT_STYLES.available;
 
     return (
         <button
             type="button"
-            disabled={slot.status === 'booked'}
-            onClick={() => slot.status !== 'booked' && onClick(slot.time)}
+            disabled={slot.status === 'booked' || disabled}
+            onClick={() => !disabled && slot.status !== 'booked' && onClick(slot.time)}
             title={slot.status === 'booked' ? 'Already booked' : `Click to select ${slot.time}`}
             style={{
                 padding: '0.55rem 0.4rem',
@@ -59,8 +56,8 @@ const SlotButton = ({ slot, isSelected, onClick }) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '0.2rem',
-                position: 'relative',
                 ...base,
+                ...(disabled && slot.status !== 'booked' ? { opacity: 0.35, cursor: 'not-allowed' } : {}),
             }}
         >
             {slot.time}
@@ -90,33 +87,49 @@ const Legend = () => (
         <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-gray-500, #6b7280)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Legend
         </span>
-
         {[
             { label: 'Available', bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#34d399', color: '#065f46' },
             { label: 'Booked', bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#f87171', color: '#ef4444' },
             { label: 'Selected', bg: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: '#1d4ed8', color: '#fff' },
-        ].map(({ label, bg, border, color }) => (
-            <span
-                key={label}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', color: 'var(--color-gray-700, #374151)' }}
-            >
-                <span
-                    style={{
-                        width: '1.15rem',
-                        height: '1.15rem',
-                        borderRadius: '0.25rem',
-                        background: bg,
-                        border: `1.5px solid ${border}`,
-                        display: 'inline-block',
-                        flexShrink: 0,
-                    }}
-                />
+        ].map(({ label, bg, border }) => (
+            <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', color: 'var(--color-gray-700, #374151)' }}>
+                <span style={{ width: '1.15rem', height: '1.15rem', borderRadius: '0.25rem', background: bg, border: `1.5px solid ${border}`, display: 'inline-block', flexShrink: 0 }} />
                 {label}
             </span>
         ))}
     </div>
 );
 
+/* ─── Already-booked warning banner ─────────────────────────────────── */
+const AlreadyBookedBanner = ({ time, date }) => (
+    <div
+        style={{
+            padding: '1rem 1.25rem',
+            background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+            border: '2px solid #fbbf24',
+            borderRadius: '0.75rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            marginTop: '0.75rem',
+        }}
+    >
+        <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>⚠️</span>
+        <div>
+            <p style={{ margin: 0, fontWeight: 700, color: '#92400e', fontSize: '0.95rem' }}>
+                You already have an appointment on this date
+            </p>
+            <p style={{ margin: '0.3rem 0 0', color: '#78350f', fontSize: '0.875rem' }}>
+                Your existing booking is at <strong>{time}</strong> on <strong>{date}</strong>.
+                Please pick a different date to book another appointment with this doctor.
+            </p>
+        </div>
+    </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Main Booking Page
+ ═══════════════════════════════════════════════════════════════════════ */
 const Booking = () => {
     const { doctorId } = useParams();
     const navigate = useNavigate();
@@ -124,39 +137,61 @@ const Booking = () => {
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
 
-    // Fetch doctor details
+    /* ── Doctor details ── */
     const { data: doctor, isLoading: doctorLoading } = useQuery({
         queryKey: ['doctor', doctorId],
         queryFn: async () => {
-            const response = await axios.get(API_ENDPOINTS.doctors.detail(doctorId));
-            return response.data;
+            const res = await axios.get(API_ENDPOINTS.doctors.detail(doctorId));
+            return res.data;
         },
     });
 
-    // Fetch ALL slots (available + booked) when date is selected
+    /* ── All slots for selected date ── */
     const { data: slotsData, isLoading: slotsLoading, error: slotsError } = useQuery({
         queryKey: ['slots', doctorId, selectedDate],
         queryFn: async () => {
-            const response = await axios.get(API_ENDPOINTS.doctors.availableSlots(doctorId, selectedDate));
-            return response.data;
+            const res = await axios.get(API_ENDPOINTS.doctors.availableSlots(doctorId, selectedDate));
+            return res.data;
         },
         enabled: !!selectedDate && selectedDate.length === 10,
     });
 
-    // Create booking mutation
+    /* ── Check if this user already has an active booking with this
+          doctor on the selected date  (runs whenever date changes) ── */
+    const { data: myBookingsOnDate } = useQuery({
+        queryKey: ['myBookingConflict', doctorId, selectedDate],
+        queryFn: async () => {
+            const res = await axios.get(
+                `${API_ENDPOINTS.bookings.list}?booking_date=${selectedDate}&doc_name=${doctorId}`,
+            );
+            // The list endpoint only returns the logged-in user's bookings,
+            // so we just need to find any pending / accepted entry.
+            const active = (res.data?.results ?? res.data ?? []).filter(
+                (b) => ['pending', 'accepted'].includes(b.status),
+            );
+            return active.length > 0 ? active[0] : null;
+        },
+        enabled: !!selectedDate && selectedDate.length === 10 && !!user,
+    });
+
+    const alreadyBooked = !!myBookingsOnDate;
+
+    /* ── Create booking mutation ── */
     const createBooking = useMutation({
         mutationFn: async (bookingData) => {
-            const response = await axios.post(API_ENDPOINTS.bookings.create, bookingData);
-            return response.data;
+            const res = await axios.post(API_ENDPOINTS.bookings.create, bookingData);
+            return res.data;
         },
         onSuccess: () => {
             toast.success('Booking created successfully!');
             navigate('/my-bookings');
         },
         onError: (error) => {
+            const data = error.response?.data;
             const message =
-                error.response?.data?.booking_date?.[0] ||
-                error.response?.data?.appointment_time?.[0] ||
+                data?.booking_date?.[0] ||
+                data?.appointment_time?.[0] ||
+                data?.detail ||
                 'Failed to create booking';
             toast.error(message);
         },
@@ -164,6 +199,10 @@ const Booking = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (alreadyBooked) {
+            toast.error('You already have an appointment on this date with this doctor.');
+            return;
+        }
         if (!selectedDate || !selectedTime) {
             toast.error('Please select a date and time slot');
             return;
@@ -177,7 +216,6 @@ const Booking = () => {
 
     if (doctorLoading) return <Loading />;
 
-    /* stats derived from slot data */
     const totalSlots = slotsData?.slots?.length ?? 0;
     const availableCount = slotsData?.available_slots ?? 0;
     const bookedCount = totalSlots - availableCount;
@@ -218,70 +256,51 @@ const Booking = () => {
                                 }}
                                 min={new Date().toISOString().split('T')[0]}
                                 max={new Date(new Date().setDate(new Date().getDate() + 60))
-                                    .toISOString()
-                                    .split('T')[0]}
+                                    .toISOString().split('T')[0]}
                                 required
                             />
                         </div>
 
-                        {/* ── Slot Picker ── */}
+                        {/* ── Slot area ── */}
                         {selectedDate && (
                             <div className="form-group" style={{ marginTop: '1.5rem' }}>
                                 <label className="form-label">Appointment Time *</label>
 
+                                {/* Already-booked warning — shown before slots */}
+                                {alreadyBooked && (
+                                    <AlreadyBookedBanner
+                                        time={
+                                            myBookingsOnDate.appointment_time
+                                                ? myBookingsOnDate.appointment_time.slice(0, 5)
+                                                : 'N/A'
+                                        }
+                                        date={new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', {
+                                            day: 'numeric', month: 'long', year: 'numeric'
+                                        })}
+                                    />
+                                )}
+
                                 {slotsLoading ? (
                                     <Loading size="sm" text="Loading slots…" />
                                 ) : slotsError ? (
-                                    <p style={{ color: 'var(--color-danger)' }}>
+                                    <p style={{ color: 'var(--color-danger)', marginTop: '0.75rem' }}>
                                         Invalid date or error fetching slots.
                                     </p>
                                 ) : slotsData ? (
                                     slotsData.available ? (
-                                        <div>
-                                            {/* Working-hours banner */}
+                                        <div style={{ marginTop: alreadyBooked ? '1rem' : 0 }}>
+                                            {/* Working-hours + count chips */}
                                             {slotsData.working_hours && (
-                                                <div
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        flexWrap: 'wrap',
-                                                        gap: '0.5rem',
-                                                        marginBottom: '1rem',
-                                                    }}
-                                                >
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                                                     <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', margin: 0 }}>
                                                         🕐 Working hours:{' '}
-                                                        <strong>
-                                                            {slotsData.working_hours.start} – {slotsData.working_hours.end}
-                                                        </strong>
+                                                        <strong>{slotsData.working_hours.start} – {slotsData.working_hours.end}</strong>
                                                     </p>
-                                                    {/* Slot count chips */}
                                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                        <span
-                                                            style={{
-                                                                padding: '0.2rem 0.65rem',
-                                                                borderRadius: '999px',
-                                                                background: '#d1fae5',
-                                                                color: '#065f46',
-                                                                border: '1px solid #6ee7b7',
-                                                                fontSize: '0.78rem',
-                                                                fontWeight: 600,
-                                                            }}
-                                                        >
+                                                        <span style={{ padding: '0.2rem 0.65rem', borderRadius: '999px', background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', fontSize: '0.78rem', fontWeight: 600 }}>
                                                             ✓ {availableCount} Available
                                                         </span>
-                                                        <span
-                                                            style={{
-                                                                padding: '0.2rem 0.65rem',
-                                                                borderRadius: '999px',
-                                                                background: '#fee2e2',
-                                                                color: '#b91c1c',
-                                                                border: '1px solid #fca5a5',
-                                                                fontSize: '0.78rem',
-                                                                fontWeight: 600,
-                                                            }}
-                                                        >
+                                                        <span style={{ padding: '0.2rem 0.65rem', borderRadius: '999px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', fontSize: '0.78rem', fontWeight: 600 }}>
                                                             ✗ {bookedCount} Booked
                                                         </span>
                                                     </div>
@@ -291,66 +310,34 @@ const Booking = () => {
                                             {/* Slots grid */}
                                             {slotsData.slots && slotsData.slots.length > 0 ? (
                                                 <>
-                                                    <div
-                                                        style={{
-                                                            display: 'grid',
-                                                            gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
-                                                            gap: '0.6rem',
-                                                        }}
-                                                    >
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '0.6rem' }}>
                                                         {slotsData.slots.map((slot) => (
                                                             <SlotButton
                                                                 key={slot.time}
                                                                 slot={slot}
                                                                 isSelected={selectedTime === slot.time}
                                                                 onClick={setSelectedTime}
+                                                                disabled={alreadyBooked}
                                                             />
                                                         ))}
                                                     </div>
-
-                                                    {/* Legend */}
                                                     <Legend />
                                                 </>
                                             ) : (
-                                                <p style={{ color: 'var(--color-gray-600)' }}>
+                                                <p style={{ color: 'var(--color-gray-600)', marginTop: '0.75rem' }}>
                                                     No slots found for this day.
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
                                         /* Doctor unavailable banner */
-                                        <div
-                                            style={{
-                                                padding: '1.5rem',
-                                                backgroundColor: '#fef2f2',
-                                                border: '2px solid #fecaca',
-                                                borderRadius: '0.75rem',
-                                                display: 'flex',
-                                                alignItems: 'flex-start',
-                                                gap: '1rem',
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    width: '48px',
-                                                    height: '48px',
-                                                    backgroundColor: '#fee2e2',
-                                                    borderRadius: '50%',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    flexShrink: 0,
-                                                }}
-                                            >
+                                        <div style={{ padding: '1.5rem', backgroundColor: '#fef2f2', border: '2px solid #fecaca', borderRadius: '0.75rem', display: 'flex', alignItems: 'flex-start', gap: '1rem', marginTop: '0.75rem' }}>
+                                            <div style={{ width: '48px', height: '48px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 <i className="fas fa-calendar-times" style={{ fontSize: '1.25rem', color: '#dc2626' }} />
                                             </div>
                                             <div>
-                                                <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem', fontWeight: 600 }}>
-                                                    Doctor Unavailable
-                                                </h4>
-                                                <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.9375rem' }}>
-                                                    {slotsData?.reason}
-                                                </p>
+                                                <h4 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontSize: '1rem', fontWeight: 600 }}>Doctor Unavailable</h4>
+                                                <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.9375rem' }}>{slotsData?.reason}</p>
                                                 <p style={{ margin: '0.75rem 0 0', color: '#991b1b', fontSize: '0.875rem', fontStyle: 'italic' }}>
                                                     Please select a different date to see available time slots.
                                                 </p>
@@ -361,23 +348,9 @@ const Booking = () => {
                             </div>
                         )}
 
-                        {/* Selected-time confirmation badge */}
-                        {selectedTime && (
-                            <div
-                                style={{
-                                    marginTop: '1rem',
-                                    padding: '0.6rem 1rem',
-                                    background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                                    border: '1.5px solid #93c5fd',
-                                    borderRadius: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    color: '#1d4ed8',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                }}
-                            >
+                        {/* Selected-time confirmation badge (only if not already booked) */}
+                        {selectedTime && !alreadyBooked && (
+                            <div style={{ marginTop: '1rem', padding: '0.6rem 1rem', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '1.5px solid #93c5fd', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#1d4ed8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <i className="fas fa-clock" />
                                 Selected slot: {selectedTime}
                             </div>
@@ -387,7 +360,7 @@ const Booking = () => {
                             type="submit"
                             className="btn btn-primary btn-lg"
                             style={{ width: '100%', marginTop: '1.5rem' }}
-                            disabled={createBooking.isPending || !selectedTime}
+                            disabled={createBooking.isPending || !selectedTime || alreadyBooked}
                         >
                             {createBooking.isPending ? 'Creating Booking…' : 'Confirm Booking'}
                         </button>
