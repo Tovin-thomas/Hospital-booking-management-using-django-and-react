@@ -86,12 +86,103 @@ const Legend = () => (
     </div>
 );
 
+/* ─── Today's date in YYYY-MM-DD (local time, not UTC) ─────── */
+const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/* ─── Available-days strip ───────────────────────────────────── */
+const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const AvailableDaysStrip = ({ availabilities }) => {
+    if (!availabilities) return null;
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const availSet = new Set(availabilities.map(a => a.day_display));
+
+    return (
+        <div style={{
+            marginTop: '1rem',
+            padding: '0.85rem 1rem',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '0.75rem',
+        }}>
+            <p style={{
+                margin: '0 0 0.6rem',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+            }}>
+                <i className="fas fa-calendar-week" style={{ marginRight: '0.4rem', color: '#2563eb' }} />
+                Doctor available on
+            </p>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {ALL_DAYS.map((day, i) => {
+                    const isAvail = availSet.has(day);
+                    const isToday = day === today;
+                    const avail = availabilities.find(a => a.day_display === day);
+                    return (
+                        <span
+                            key={day}
+                            title={isAvail ? `${day}: ${avail.start_time.slice(0, 5)}–${avail.end_time.slice(0, 5)}` : `Not available on ${day}`}
+                            style={{
+                                padding: '0.3rem 0.65rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'default',
+                                // today + available → vivid green
+                                // other available   → blue
+                                // not available     → grey-ish muted
+                                background: isAvail && isToday ? '#dcfce7'
+                                    : isAvail ? '#dbeafe'
+                                        : '#f1f5f9',
+                                color: isAvail && isToday ? '#15803d'
+                                    : isAvail ? '#1d4ed8'
+                                        : '#94a3b8',
+                                border: `1.5px solid ${isAvail && isToday ? '#86efac'
+                                        : isAvail ? '#93c5fd'
+                                            : '#e2e8f0'
+                                    }`,
+                                position: 'relative',
+                            }}
+                        >
+                            {SHORT[i]}
+                            {isAvail && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '-3px',
+                                    right: '-3px',
+                                    width: '7px',
+                                    height: '7px',
+                                    borderRadius: '50%',
+                                    background: isToday ? '#22c55e' : '#3b82f6',
+                                    border: '1.5px solid white',
+                                }} />
+                            )}
+                        </span>
+                    );
+                })}
+            </div>
+            {availabilities.length > 0 && (
+                <p style={{ margin: '0.6rem 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                    💡 Hover a day pill to see working hours. Pick a highlighted date above.
+                </p>
+            )}
+        </div>
+    );
+};
+
 /* ═══════════════════════════════════════════════════════════════════ */
 
 const Booking = () => {
     const { doctorId } = useParams();
     const navigate = useNavigate();
-    const [selectedDate, setSelectedDate] = useState('');
+    const [selectedDate, setSelectedDate] = useState(todayStr);  // ← default today
     const [selectedTime, setSelectedTime] = useState('');
 
     /* ── Doctor details ── */
@@ -158,11 +249,54 @@ const Booking = () => {
             <div className="container-sm">
                 <h1 style={{ marginBottom: '2rem' }}>Book Appointment</h1>
 
-                {/* Doctor info */}
-                <div className="card" style={{ marginBottom: '2rem' }}>
-                    <h3>{doctor?.doc_name}</h3>
-                    <p style={{ color: 'var(--color-primary)' }}>{doctor?.doc_spec}</p>
-                    <p style={{ color: 'var(--color-gray-600)' }}>{doctor?.department?.dep_name}</p>
+                {/* ── Doctor info card ─────────────────────────── */}
+                <div className="card" style={{
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.25rem',
+                    padding: '1.25rem 1.5rem',
+                    background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)',
+                    border: '1.5px solid #bfdbfe',
+                    borderRadius: '1rem',
+                }}>
+                    {/* Avatar / image */}
+                    <div style={{
+                        width: 72, height: 72,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg,#2563eb,#4f46e5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        border: '3px solid white',
+                        boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                    }}>
+                        {doctor?.doc_image_url ? (
+                            <img src={doctor.doc_image_url} alt={doctor.doc_name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+                        ) : (
+                            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white' }}>
+                                {(doctor?.doc_name || 'DR').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('')}
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <h3 style={{ margin: '0 0 0.2rem', fontSize: '1.2rem', fontWeight: 700 }}>Dr. {doctor?.doc_name}</h3>
+                        <p style={{ margin: '0 0 0.4rem', color: '#2563eb', fontWeight: 600, fontSize: '0.9rem' }}>{doctor?.doc_spec}</p>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {doctor?.department_name && (
+                                <span style={{ padding: '0.2rem 0.7rem', borderRadius: '9999px', background: '#dbeafe', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 700 }}>
+                                    {doctor.department_name}
+                                </span>
+                            )}
+                            {doctor?.availabilities?.length > 0 && (
+                                <span style={{ padding: '0.2rem 0.7rem', borderRadius: '9999px', background: '#dcfce7', color: '#15803d', fontSize: '0.75rem', fontWeight: 700 }}>
+                                    <i className="fas fa-clock" style={{ marginRight: '0.3rem' }} />
+                                    {doctor.availabilities.length} working day{doctor.availabilities.length !== 1 ? 's' : ''}/week
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Booking form */}
@@ -186,6 +320,8 @@ const Booking = () => {
                                 max={new Date(new Date().setDate(new Date().getDate() + 60)).toISOString().split('T')[0]}
                                 required
                             />
+                            {/* ── Show doctor's weekly schedule ── */}
+                            <AvailableDaysStrip availabilities={doctor?.availabilities} />
                         </div>
 
                         {/* Slot picker */}
