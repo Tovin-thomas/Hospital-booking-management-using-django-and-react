@@ -141,8 +141,8 @@ const Doctors = () => {
                         {filteredDoctors && filteredDoctors.length > 0 ? (
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                gap: '2rem',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                gap: '1.75rem',
                             }}>
                                 {filteredDoctors.map(doctor => (
                                     <div key={doctor.id} style={{ animation: 'fadeIn 0.5s ease-out forwards' }}>
