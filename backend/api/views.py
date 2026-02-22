@@ -251,21 +251,13 @@ class DoctorViewSet(viewsets.ModelViewSet):
         
         while current_time < end_time:
             slot_time = current_time.time()
-            
-            # Ensure the slot fits within the shift (end time logic)
-            # If 20 min slot pushes past end_time, we might exclude it depending on rules.
-            # Assuming standard logic: start of slot < end_time
-            
-            # Only add available slots
-            if slot_time not in booked_times:
-                slots.append({
-                    'time': slot_time.strftime('%H:%M'),
-                    'available': True
-                })
-            
+            is_available = slot_time not in booked_times
+            slots.append({
+                'time': slot_time.strftime('%H:%M'),
+                'available': is_available,
+                'status': 'available' if is_available else 'booked',
+            })
             current_time += timedelta(minutes=20)
-        
-
 
         return Response({
             'available': True,
