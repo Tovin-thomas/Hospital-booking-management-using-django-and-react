@@ -10,10 +10,6 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Count, Prefetch, Q
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
-from django.utils.decorators import method_decorator
-from django.core.cache import cache
 from django.conf import settings
 import requests
 from datetime import datetime, timedelta, date
@@ -141,10 +137,8 @@ class DoctorViewSet(viewsets.ModelViewSet):
     ordering_fields = ['doc_name']
     ordering = ['doc_name']
 
-    # Cache public doctor list for 5 minutes, keyed per Authorization header
-    # (without vary_on_headers, all users share one cache entry — admins get 403)
-    @method_decorator(cache_page(60 * 5))
-    @method_decorator(vary_on_headers('Authorization'))
+    # No cache_page here — locmem cache is per-worker and breaks with multiple
+    # gunicorn processes on Render (stale data randomly served). DB is fast enough.
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -463,8 +457,6 @@ class ContactViewSet(viewsets.ModelViewSet):
 # Dashboard Stats
 # ===========================
 
-@cache_page(60)             # Cache response for 1 minute per user
-@vary_on_headers('Authorization')  # Each user gets their own cache entry (based on JWT)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
@@ -716,10 +708,6 @@ class AdminListView(APIView):
     """
     permission_classes = [IsAdminUser]
 
-    # Cache admin list for 2 minutes — accounts change rarely.
-    # vary_on_headers ensures each logged-in admin gets their own cache entry.
-    @method_decorator(cache_page(60 * 2))
-    @method_decorator(vary_on_headers('Authorization'))
     def get(self, request):
         # only() fetches exactly the 7 columns we need, skips password hash & other heavy fields
         admins = User.objects.filter(is_superuser=True).only(
