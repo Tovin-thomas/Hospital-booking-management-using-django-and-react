@@ -657,10 +657,11 @@ class GoogleLoginView(APIView):
             if not email:
                 return Response({'error': 'Email not found in Google token'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Check if user exists
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
+            # Use filter+first instead of get() to safely handle duplicate emails.
+            # Prefer a regular patient account (not staff/superuser) if duplicates exist.
+            users_with_email = User.objects.filter(email=email).order_by('is_superuser', 'is_staff')
+            user = users_with_email.first()
+            if user is None:
                 # Create user
                 username = email.split('@')[0]
                 # Ensure unique username

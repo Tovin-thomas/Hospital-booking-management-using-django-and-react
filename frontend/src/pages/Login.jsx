@@ -29,16 +29,19 @@ const Login = () => {
         const isDoctor = user?.role === 'doctor' || (user?.is_staff && !user?.is_superuser);
 
         if (isSuperUser) {
+            logout(true); // silent logout — no "Logged out" toast
             toast.error('This page is for Patients only. Admins must use /admin-login.');
-            logout(); // Log them out immediately
             return;
         }
 
         if (isDoctor) {
+            logout(true); // silent logout — no "Logged out" toast
             toast.error('This page is for Patients only. Doctors must use the Doctor Portal.');
-            logout(); // Log them out immediately
             return;
         }
+
+        // Valid patient — show success toast here (after role is confirmed)
+        toast.success('Login successful!');
 
         // If regular patient, proceed
         let redirectPath = '/';

@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
             const userData = profileResponse.data;
             setUser(userData);
 
-            toast.success('Login successful!');
+            // Do NOT toast here — the caller (Login.jsx) handles success/role messaging
             return { success: true, user: userData };
         } catch (error) {
             const message = error.response?.data?.detail || 'Login failed. Please check your credentials.';
@@ -90,15 +90,10 @@ export const AuthProvider = ({ children }) => {
             tokenStore.setAccess(access);
             tokenStore.setRefresh(refresh);
 
-            if (googleUser) {
-                setUser(googleUser);
-            } else {
-                const profileResponse = await axios.get(API_ENDPOINTS.auth.profile);
-                setUser(profileResponse.data);
-            }
-
-            toast.success('Login successful!');
-            return { success: true };
+            // Do NOT toast here — the caller (Login.jsx) handles success/role messaging
+            const resolvedUser = googleUser || (await axios.get(API_ENDPOINTS.auth.profile)).data;
+            setUser(resolvedUser);
+            return { success: true, user: resolvedUser };
         } catch (error) {
             const message = error.response?.data?.error || 'Google Login failed';
             toast.error(message);
@@ -106,10 +101,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = (silent = false) => {
         tokenStore.clearAll(); // Clears memory + sessionStorage + old localStorage
         setUser(null);
-        toast.info('Logged out successfully');
+        if (!silent) {
+            toast.info('Logged out successfully');
+        }
     };
 
     const updateProfile = async (profileData) => {
