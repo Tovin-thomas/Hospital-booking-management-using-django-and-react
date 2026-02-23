@@ -52,14 +52,46 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // Response interceptor — auto-refresh on 401
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
+        // Prevent infinite loops if the refresh auth endpoint itself returns 401
+        if (originalRequest.url?.includes('/auth/refresh')) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                // If a refresh is already happening, queue this request
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = 'Bearer ' + token;
+                    return axiosInstance(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
 
             try {
                 const refreshToken = tokenStore.getRefresh();
@@ -68,22 +100,41 @@ axiosInstance.interceptors.response.use(
                     throw new Error('No refresh token');
                 }
 
+                // Use raw axios to bypass interceptors for the refresh call
                 const response = await axios.post(`${API_URL}/auth/refresh/`, {
                     refresh: refreshToken,
                 });
 
-                const { access } = response.data;
+                const { access, refresh } = response.data;
                 tokenStore.setAccess(access); // Store new access token in memory
+                if (refresh) {
+                    tokenStore.setRefresh(refresh); // Store rotated refresh token
+                }
 
                 originalRequest.headers.Authorization = `Bearer ${access}`;
+
+                // Process the queued requests with the new token
+                processQueue(null, access);
+
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
+                processQueue(refreshError, null);
                 tokenStore.clearAll();
-                // Redirect to the correct login page based on the route that failed
-                const isAdminRoute = originalRequest.url?.includes('/admin') ||
-                    window.location.pathname.startsWith('/admin');
-                window.location.href = isAdminRoute ? '/admin-login' : '/login';
+
+                // Only redirect if it's not a public page where we were just silently restoring session
+                const isAdminRoute = window.location.pathname.startsWith('/admin');
+
+                if (window.location.pathname !== '/' &&
+                    window.location.pathname !== '/doctors' &&
+                    window.location.pathname !== '/departments' &&
+                    window.location.pathname !== '/about' &&
+                    window.location.pathname !== '/contact') {
+                    window.location.href = isAdminRoute ? '/admin-login' : '/login';
+                }
+
                 return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
 
