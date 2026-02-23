@@ -6,6 +6,32 @@ import StatCard from '../common/StatCard';
 import Loading from '../common/Loading';
 import { toast } from 'react-toastify';
 
+// Time formatting utilities for 12-hour AM/PM display
+const formatTime12hStr = (time24) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':');
+    let hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    return `${hour}:${m} ${ampm}`;
+};
+
+const generateTimeSlots = () => {
+    const slots = [];
+    for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 15) {
+            const h24 = h.toString().padStart(2, '0');
+            const min = m.toString().padStart(2, '0');
+            slots.push({
+                value: `${h24}:${min}`,
+                label: formatTime12hStr(`${h24}:${min}`)
+            });
+        }
+    }
+    return slots;
+};
+const TIME_SLOTS = generateTimeSlots();
+
 const DoctorDashboard = ({ stats }) => {
     const [activeTab, setActiveTab] = useState('overview');
 
@@ -220,7 +246,7 @@ const AppointmentsList = () => {
                                     </td>
                                     <td style={{ padding: '1.25rem 1rem' }}>
                                         <div style={{ color: '#1e293b', fontWeight: 500 }}>{booking.booking_date}</div>
-                                        <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>{booking.appointment_time}</div>
+                                        <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>{formatTime12hStr(booking.appointment_time?.substring(0, 5))}</div>
                                     </td>
                                     <td style={{ padding: '1.25rem 1rem' }}>
                                         <span style={{
@@ -403,24 +429,38 @@ const ScheduleManager = () => {
                                 {day.name}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>From (24h)</label>
-                                <input
-                                    type="time"
+                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>Start Time</label>
+                                <select
                                     defaultValue={startVal}
                                     id={`start-${day.id}`}
                                     className="form-input"
-                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
-                                />
+                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0', appearance: 'auto', cursor: 'pointer', backgroundColor: '#fff' }}
+                                >
+                                    <option value="">Off (None)</option>
+                                    {startVal && !TIME_SLOTS.find(s => s.value === startVal) && (
+                                        <option value={startVal}>{formatTime12hStr(startVal)}</option>
+                                    )}
+                                    {TIME_SLOTS.map(slot => (
+                                        <option key={slot.value} value={slot.value}>{slot.label}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>To (24h) - Use 18:00 for 6PM</label>
-                                <input
-                                    type="time"
+                                <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>End Time</label>
+                                <select
                                     defaultValue={endVal}
                                     id={`end-${day.id}`}
                                     className="form-input"
-                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0' }}
-                                />
+                                    style={{ borderColor: avail ? '#bae6fd' : '#e2e8f0', appearance: 'auto', cursor: 'pointer', backgroundColor: '#fff' }}
+                                >
+                                    <option value="">Off (None)</option>
+                                    {endVal && !TIME_SLOTS.find(s => s.value === endVal) && (
+                                        <option value={endVal}>{formatTime12hStr(endVal)}</option>
+                                    )}
+                                    {TIME_SLOTS.map(slot => (
+                                        <option key={slot.value} value={slot.value}>{slot.label}</option>
+                                    ))}
+                                </select>
                             </div>
                             <button
                                 onClick={() => {
