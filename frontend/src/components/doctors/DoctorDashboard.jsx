@@ -188,8 +188,8 @@ const AppointmentsList = () => {
         },
         onSuccess: (data) => {
             console.log('Status update success:', data);
-            queryClient.invalidateQueries(['doctor-bookings']);
-            queryClient.invalidateQueries(['dashboard-stats']);
+            queryClient.invalidateQueries({ queryKey: ['doctor-bookings'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
             toast.success('Appointment status updated!');
         },
         onError: (err) => {
@@ -379,7 +379,7 @@ const ScheduleManager = () => {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(['doctor-availability']);
+            queryClient.invalidateQueries({ queryKey: ['doctor-availability'] });
             toast.success('Schedule updated successfully');
         },
         onError: () => toast.error('Failed to update schedule')
@@ -505,7 +505,7 @@ const LeaveManager = () => {
     const createLeave = useMutation({
         mutationFn: async (data) => axios.post(API_ENDPOINTS.doctorLeaves.create, data),
         onSuccess: () => {
-            queryClient.invalidateQueries(['doctor-leaves']);
+            queryClient.invalidateQueries({ queryKey: ['doctor-leaves'] });
             setShowForm(false);
             setFormData({ date: '', reason: '' });
             toast.success('Leave marked successfully');
@@ -516,7 +516,7 @@ const LeaveManager = () => {
     const deleteLeave = useMutation({
         mutationFn: async (id) => axios.delete(API_ENDPOINTS.doctorLeaves.delete(id)),
         onSuccess: () => {
-            queryClient.invalidateQueries(['doctor-leaves']);
+            queryClient.invalidateQueries({ queryKey: ['doctor-leaves'] });
             toast.success('Leave removed successfully');
         }
     });
