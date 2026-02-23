@@ -8,8 +8,8 @@ const getErrorInfo = (rawError, isNotAdmin = false) => {
     if (isNotAdmin) {
         return {
             icon: '🚫',
-            title: 'Not an Administrator',
-            message: 'Your account exists but does not have admin privileges. Please use the regular patient login instead.',
+            title: 'Not Authorized',
+            message: 'Your account does not have staff privileges. Please use the regular patient login instead.',
             type: 'not-admin',
         };
     }
@@ -118,11 +118,18 @@ const AdminLogin = () => {
         const result = await login(formData);
 
         if (result.success) {
-            if (result.user?.is_superuser) {
-                // ✅ Valid admin — go to dashboard
-                navigate(from, { replace: true });
+            const isSuperUser = result.user?.is_superuser;
+            const isDoctor = result.user?.role === 'doctor' || (result.user?.is_staff && !isSuperUser);
+
+            if (isSuperUser || isDoctor) {
+                // ✅ Valid admin or doctor — go to dashboard
+                let targetPath = from;
+                if (targetPath === '/admin/dashboard' && isDoctor && !isSuperUser) {
+                    targetPath = '/dashboard';
+                }
+                navigate(targetPath, { replace: true });
             } else {
-                // ✅ Credentials correct but NOT an admin — silently clear tokens
+                // ✅ Credentials correct but NOT an admin/doctor — silently clear tokens
                 tokenStore.clearAll();
                 setErrorInfo(getErrorInfo(null, true));
                 triggerShake();
@@ -270,7 +277,7 @@ const AdminLogin = () => {
                             <i className="fas fa-shield-alt" style={{ fontSize: '1.5rem', color: 'white' }}></i>
                         </div>
                         <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'white', margin: '0 0 0.35rem', letterSpacing: '-0.02em' }}>
-                            Admin Portal
+                            Staff Portal
                         </h1>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', margin: 0 }}>
                             Authorised personnel only
@@ -378,7 +385,7 @@ const AdminLogin = () => {
                             ) : (
                                 <>
                                     <i className="fas fa-unlock-alt"></i>
-                                    Sign in as Admin
+                                    Sign in as Staff
                                 </>
                             )}
                         </button>
