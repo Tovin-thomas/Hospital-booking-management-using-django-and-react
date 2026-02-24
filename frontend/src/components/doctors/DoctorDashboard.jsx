@@ -204,13 +204,13 @@ const AppointmentsList = () => {
 
     const getStatusStyle = (status) => {
         const styles = {
-            pending: { bg: '#fef3c7', color: '#92400e' },
-            accepted: { bg: '#dcfce7', color: '#166534' },
-            rejected: { bg: '#fee2e2', color: '#991b1b' },
-            completed: { bg: '#dbeafe', color: '#1e40af' },
-            cancelled: { bg: '#f1f5f9', color: '#475569' }
+            pending: { bg: '#fef3c7', color: '#92400e', label: 'Not Visited' },
+            accepted: { bg: '#dcfce7', color: '#166534', label: 'Accepted' },
+            rejected: { bg: '#fee2e2', color: '#991b1b', label: 'Not Visited' },
+            completed: { bg: '#dbeafe', color: '#1e40af', label: 'Visited' },
+            cancelled: { bg: '#f1f5f9', color: '#475569', label: 'Not Visited' }
         };
-        return styles[status] || styles.pending;
+        return styles[status] || { ...styles.pending, label: status.charAt(0).toUpperCase() + status.slice(1) };
     };
 
     if (isLoading) return <Loading />;
@@ -257,7 +257,7 @@ const AppointmentsList = () => {
                                             backgroundColor: statusStyle.bg,
                                             color: statusStyle.color,
                                         }}>
-                                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                            {statusStyle.label}
                                         </span>
                                     </td>
                                     <td style={{ padding: '1.25rem 1rem' }}>
