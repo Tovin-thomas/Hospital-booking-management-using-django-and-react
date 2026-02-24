@@ -265,10 +265,10 @@ const AppointmentsList = () => {
                                             <span style={{ color: '#94a3b8', fontSize: '0.875rem', fontStyle: 'italic' }}>No actions</span>
                                         ) : (
                                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                {isPending && (
+                                                {(isPending || isAccepted) && (
                                                     <>
                                                         <button
-                                                            onClick={() => handleStatusChange(booking.id, 'accepted')}
+                                                            onClick={() => handleStatusChange(booking.id, 'completed')}
                                                             disabled={updateStatus.isPending}
                                                             style={{
                                                                 padding: '0.4rem 0.8rem',
@@ -284,10 +284,10 @@ const AppointmentsList = () => {
                                                                 gap: '0.25rem'
                                                             }}
                                                         >
-                                                            ✓ Accept
+                                                            ✓ Visited
                                                         </button>
                                                         <button
-                                                            onClick={() => handleStatusChange(booking.id, 'rejected')}
+                                                            onClick={() => handleStatusChange(booking.id, 'cancelled')}
                                                             disabled={updateStatus.isPending}
                                                             style={{
                                                                 padding: '0.4rem 0.8rem',
@@ -303,30 +303,9 @@ const AppointmentsList = () => {
                                                                 gap: '0.25rem'
                                                             }}
                                                         >
-                                                            ✕ Reject
+                                                            ✕ Not Visited
                                                         </button>
                                                     </>
-                                                )}
-                                                {isAccepted && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(booking.id, 'completed')}
-                                                        disabled={updateStatus.isPending}
-                                                        style={{
-                                                            padding: '0.4rem 0.8rem',
-                                                            backgroundColor: '#3b82f6',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '0.5rem',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.8rem',
-                                                            fontWeight: 600,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.25rem'
-                                                        }}
-                                                    >
-                                                        ✓ Mark Complete
-                                                    </button>
                                                 )}
                                             </div>
                                         )}
