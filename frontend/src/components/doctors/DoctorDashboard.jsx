@@ -204,7 +204,7 @@ const AppointmentsList = () => {
 
     const getStatusStyle = (status) => {
         const styles = {
-            pending: { bg: '#fef3c7', color: '#92400e', label: 'Not Visited' },
+            pending: { bg: '#fef3c7', color: '#92400e', label: 'Not Marked' },
             accepted: { bg: '#dcfce7', color: '#166534', label: 'Accepted' },
             rejected: { bg: '#fee2e2', color: '#991b1b', label: 'Not Visited' },
             completed: { bg: '#dbeafe', color: '#1e40af', label: 'Visited' },
