@@ -287,7 +287,7 @@ const AppointmentsList = () => {
                                                             ✓ Visited
                                                         </button>
                                                         <button
-                                                            onClick={() => handleStatusChange(booking.id, 'cancelled')}
+                                                            onClick={() => handleStatusChange(booking.id, 'rejected')}
                                                             disabled={updateStatus.isPending}
                                                             style={{
                                                                 padding: '0.4rem 0.8rem',

@@ -53,10 +53,10 @@ export const getStatusColor = (status) => {
  */
 export const getStatusText = (status) => {
     const texts = {
-        pending: 'Pending',
+        pending: 'Not Marked',
         accepted: 'Accepted',
-        rejected: 'Rejected',
-        completed: 'Completed',
+        rejected: 'Not Visited',
+        completed: 'Visited',
         cancelled: 'Cancelled',
     };
     return texts[status] || status;

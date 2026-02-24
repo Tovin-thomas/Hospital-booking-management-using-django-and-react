@@ -391,9 +391,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         """Cancel a booking (for booking owner or admin)"""
         booking = self.get_object()
         
-        if booking.status in ['completed', 'cancelled']:
+        if booking.status in ['completed', 'cancelled', 'rejected']:
+            status_display = 'Not Visited' if booking.status == 'rejected' else booking.status
             return Response(
-                {'error': f'Cannot cancel a {booking.status} booking'},
+                {'error': f'Cannot cancel a {status_display} booking'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
