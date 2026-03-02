@@ -73,7 +73,8 @@ axiosInstance.interceptors.response.use(
         const originalRequest = error.config;
 
         // Prevent infinite loops if the refresh auth endpoint itself returns 401
-        if (originalRequest.url?.includes('/auth/refresh')) {
+        // Also prevent intercepting login requests (which would cause a redirect loop / page refresh on wrong password)
+        if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
             return Promise.reject(error);
         }
 

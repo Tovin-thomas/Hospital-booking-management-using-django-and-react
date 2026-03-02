@@ -18,16 +18,26 @@ const getErrorInfo = (rawError, isNotAdmin = false) => {
 
     const err = rawError.toLowerCase();
 
-    if (err.includes('no active account') || err.includes('user not found') || err.includes('no account')) {
+    // Specific match for default simplejwt generic error
+    if (err.includes('no active account found with the given credentials') || err.includes('invalid credentials')) {
+        return {
+            icon: '❌',
+            title: 'Invalid Credentials',
+            message: 'Incorrect username or password. Please try again.',
+            type: 'wrong-password',
+        };
+    }
+
+    if (err.includes('user not found') || err.includes('no account')) {
         return {
             icon: '👤',
             title: 'Account Not Found',
-            message: `No admin account found with the username "${rawError.match(/username/i) ? '' : ''}you entered. Please double-check your username.`,
+            message: `No admin account found. Please double-check your username.`,
             type: 'not-found',
         };
     }
 
-    if (err.includes('password') || err.includes('invalid credentials') || err.includes('wrong')) {
+    if (err.includes('password') || err.includes('wrong')) {
         return {
             icon: '🔑',
             title: 'Wrong Password',
@@ -54,7 +64,7 @@ const getErrorInfo = (rawError, isNotAdmin = false) => {
         };
     }
 
-    // Generic / simplejwt "No active account found with the given credentials"
+    // Generic fallback
     return {
         icon: '❌',
         title: 'Login Failed',
