@@ -18,7 +18,7 @@ from django.db import IntegrityError
 
 from doctors.models import Doctors, Departments, DoctorAvailability, DoctorLeave, DepartmentBlog
 from bookings.models import Booking
-from core.models import Contact
+from core.models import Contact, AdminPermissions
 from .serializers import (
     UserSerializer, UserRegistrationSerializer,
     DoctorSerializer, DoctorListSerializer, DoctorCreateUpdateSerializer,
@@ -711,12 +711,17 @@ class AdminListView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        # only() fetches exactly the 7 columns we need, skips password hash & other heavy fields
-        admins = User.objects.filter(is_superuser=True).only(
-            'id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login'
-        ).order_by('date_joined')
-        data = [
-            {
+        admins = User.objects.filter(is_superuser=True).prefetch_related('admin_permissions').order_by('date_joined')
+        data = []
+        for u in admins:
+            is_main = u.username == settings.MAIN_ADMIN_USERNAME
+            # Get allowed modules from AdminPermissions if they exist
+            try:
+                allowed = u.admin_permissions.get_modules_list()
+            except AdminPermissions.DoesNotExist:
+                allowed = None  # None means "no restriction set yet" for non-main admins
+
+            data.append({
                 'id': u.id,
                 'username': u.username,
                 'email': u.email,
@@ -724,10 +729,10 @@ class AdminListView(APIView):
                 'last_name': u.last_name,
                 'date_joined': u.date_joined,
                 'last_login': u.last_login,
-                'is_main_admin': u.username == settings.MAIN_ADMIN_USERNAME,
-            }
-            for u in admins
-        ]
+                'is_main_admin': is_main,
+                # Main admin always has all access — no restriction list needed
+                'allowed_modules': None if is_main else (allowed if allowed is not None else []),
+            })
         return Response(data)
 
 
@@ -765,6 +770,8 @@ class AdminCreateView(APIView):
             user.is_superuser = True
             user.is_staff = True
             user.save()
+            # Create an empty permissions entry for the newly promoted admin
+            AdminPermissions.objects.get_or_create(user=user)
 
             return Response({
                 'message': f'{username} has been promoted to admin successfully.',
@@ -798,6 +805,7 @@ class AdminCreateView(APIView):
                 existing_user.is_superuser = True
                 existing_user.is_staff = True
                 existing_user.save()
+                AdminPermissions.objects.get_or_create(user=existing_user)
                 return Response({
                     'message': f'"{username}" already had a user account and has been promoted to admin successfully.',
                     'id': existing_user.id,
@@ -815,6 +823,8 @@ class AdminCreateView(APIView):
                 is_superuser=True,
                 is_staff=True,
             )
+            # Create an empty permissions entry for the new admin
+            AdminPermissions.objects.create(user=user)
 
             return Response({
                 'message': f'Admin account "{username}" created successfully.',
@@ -855,6 +865,45 @@ class AdminRemoveView(APIView):
         user.delete()             # Permanently remove from database
 
         return Response({'message': f'Admin account "{username}" has been permanently deleted.'})
+
+
+class AdminUpdatePermissionsView(APIView):
+    """
+    POST /api/admins/{id}/permissions/ — Set allowed modules for an admin.
+    Only the main admin can do this.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        if request.user.username != settings.MAIN_ADMIN_USERNAME:
+            return Response(
+                {'error': 'Only the main administrator can update admin permissions.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            user = User.objects.get(pk=pk, is_superuser=True)
+        except User.DoesNotExist:
+            return Response({'error': 'Admin not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.username == settings.MAIN_ADMIN_USERNAME:
+            return Response(
+                {'error': 'Cannot restrict the main administrator.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        modules = request.data.get('allowed_modules', [])
+        if not isinstance(modules, list):
+            return Response({'error': 'allowed_modules must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        perms, _ = AdminPermissions.objects.get_or_create(user=user)
+        perms.set_modules_list(modules)
+        perms.save()
+
+        return Response({
+            'message': f'Permissions updated for {user.username}.',
+            'allowed_modules': perms.get_modules_list(),
+        })
 
 
 # ===========================

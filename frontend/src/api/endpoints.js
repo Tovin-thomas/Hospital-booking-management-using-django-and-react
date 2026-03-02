@@ -79,6 +79,7 @@ const API_ENDPOINTS = {
         list: '/admins/',
         create: '/admins/create/',
         remove: (id) => `/admins/${id}/remove/`,
+        permissions: (id) => `/admins/${id}/permissions/`,
     },
 
     // Department Blogs

@@ -9,7 +9,7 @@ from .views import (
     dashboard_stats, api_root,
     DoctorAvailabilityViewSet, DoctorLeaveViewSet,
     GoogleLoginView,
-    AdminListView, AdminCreateView, AdminRemoveView,
+    AdminListView, AdminCreateView, AdminRemoveView, AdminUpdatePermissionsView,
     DepartmentBlogViewSet,
 )
 
@@ -42,6 +42,7 @@ urlpatterns = [
     path('admins/', AdminListView.as_view(), name='admin-list'),
     path('admins/create/', AdminCreateView.as_view(), name='admin-create'),
     path('admins/<int:pk>/remove/', AdminRemoveView.as_view(), name='admin-remove'),
+    path('admins/<int:pk>/permissions/', AdminUpdatePermissionsView.as_view(), name='admin-permissions'),
 
     # Include router URLs
     path('', include(router.urls)),
